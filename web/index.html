@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Process simulation</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">Simulation Tool</p>
+          <h1>Process flow simulator</h1>
+          <p class="subtitle">
+            Change the process assumptions, then watch work move through each stage.<br>
+            Version BETA-0.10 
+          </p>
+        </div>
+        <div id="status" class="status status-idle" role="status">Ready</div>
+      </header>
+
+<button id="simulation-info-button" class="collapsible-button">About</button>
+<div id="simulation-info-content" class="info-content">
+  <p>
+    The purpose of this simulation is to demonstrate how changes in process assumptions can impact overall performance of the system. No information is collected, everything is running solely in your local browser.
+  </p>
+  <p>
+    You start by configuring the organization through the <b>Teams and handoffs</b> section. You can add teams, set their capacity, and define how work is handed off between them.
+    You can configure the simulation parameters in the <b>Parameters</b> section. Hover over the parameter fields to see a description of what they mean. 
+  </p>
+  <p> 
+    In the <b>Process flow</b> section you can see how teams are interacting with each other and a live view of how work is moving through the system. If a Feature dependent on multiple teams, it will be blocked until all teams have completed their work.
+    There you also see the current simulation time, which is measured in days
+  </p>
+  <p>
+    The <b>Lead time and processing ratio</b> chart shows the lead time of each feature on the horizontal axis, and the processing ratio (processing time divided by lead time) on the vertical axis. The size of each bubble represents how many features are represented by that point. The chart is updated in real-time as the simulation runs.
+  </p>
+  <p>
+      Finally, click <b><i>Start simulation</i></b> to see how work flows through the system.</p>
+  <p>Enjoy!</p>
+</div>
+      <section class="controls-panel" aria-labelledby="controls-heading">
+        <h2 id="controls-heading">Parameters</h2>
+        <form id="simulation-form" class="controls-grid">
+          <label title="Features are the work items that flow through the system. The simulation runs until all features have been completed.">
+            Features
+            <input name="featureCount" type="number" min="1" max="1000" value="30" />
+          </label>
+          <label title="Arrival interval is the average time between new work items entering the system. A lower arrival interval means more frequent arrivals.">
+            Arrival interval (days)
+            <input name="arrivalInterval" type="number" min="0.1" step="0.1" value="2" />
+          </label>
+          <label>
+            Variability
+            <select name="variability" title="Variability is the degree to which work items differ in size and complexity. Higher variability means more unpredictable work, which can lead to longer lead times and more uneven flow of work.">
+              <option value="0" selected>None</option>
+              <option value="0.20">Low</option>
+              <option value="0.50">Mid</option>
+              <option value="0.80">High</option>
+            </select>
+          </label>
+          <label>
+            Animation speed
+            <select name="speed" title="Animation speed controls how fast the simulation runs.">
+              <option value="0.5">0.5x</option>
+              <option value="1" selected>1x</option>
+              <option value="2">2x</option>
+              <option value="5">5x</option>
+            </select>
+          </label>
+          <div class="button-row">
+            <button type="submit" class="primary">Start simulation</button>
+            <button id="pause-button" type="button" disabled>Pause</button>
+            <button id="reset-button" type="button">Reset</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="controls-panel" aria-labelledby="teams-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Organization</p>
+            <h2 id="teams-heading">Teams and handoffs</h2>
+          </div>
+          <div>
+            <button id="add-team-button" type="button">Add team</button>
+            <button id="toggle-team-editor-button" type="button">Hide Editor</button>
+          </div>
+        </div>
+        <div id="team-editor" class="team-editor"></div>
+      </section>
+
+      <section class="simulation-panel" aria-labelledby="flow-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Live view</p>
+            <h2 id="flow-heading">Process flow</h2>
+          </div>
+          <div class="clock">Day <strong id="simulation-time">0.0</strong></div>
+        </div>
+        <div id="process-flow" class="team-flow" aria-live="polite"></div>
+      </section>
+
+      <section class="metrics-grid" aria-label="Simulation metrics">
+        <article class="metric-card">
+          <span>Completed</span>
+          <strong id="completed-count">0</strong>
+        </article>
+        <article class="metric-card">
+          <span>In progress</span>
+          <strong id="in-progress-count">0</strong>
+        </article>
+        <article class="metric-card">
+          <span>Average lead time</span>
+          <strong id="average-lead-time">—</strong>
+        </article>
+        <article class="metric-card">
+          <span>95th percentile</span>
+          <strong id="p95-lead-time">—</strong>
+        </article>
+      </section>
+
+      <section class="simulation-panel chart-panel" aria-labelledby="timing-heading">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Feature timings</p>
+            <h2 id="timing-heading">Lead time and processing ratio</h2>
+          </div>
+          <div class="chart-legend" aria-label="Chart legend">
+            <span><i class="legend-dot legend-active"></i>In progress</span>
+            <span><i class="legend-dot legend-complete"></i>Completed</span>
+            <span class="bubble-legend"><i class="bubble-dot bubble-small">1</i><i class="bubble-dot bubble-large">4</i>Features per point</span>
+          </div>
+          <div class="clock">Day <strong id="chart-simulation-time">0.0</strong></div>
+        </div>
+        <svg
+          id="feature-timing-chart"
+          class="feature-timing-chart"
+          viewBox="0 0 760 420"
+          role="img"
+          aria-label="Feature lead time on the horizontal axis and processing time divided by lead time on the vertical axis. Bubble size represents feature count."
+        ></svg>
+      </section>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
