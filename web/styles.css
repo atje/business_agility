@@ -82,7 +82,12 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .connection-option input { width: 18px; min-height: 18px; margin: 0; padding: 0; accent-color: #176b4d; }
 .stages-editor-header { margin: 20px 0 10px; }
 .stage-editor-list { display: grid; gap: 8px; }
-.stage-editor-row { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(130px, .5fr) 76px; gap: 10px; align-items: end; }
+.stage-editor-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) 42px;
+  gap: 8px;
+  align-items: end;
+}
 .quiet-button { min-height: 34px; padding: 0 10px; color: #425466; background: transparent; }
 .icon-button { min-height: 42px; padding: 0 8px; color: #667085; background: #fff; font-size: .8rem; }
 .team-flow { overflow: auto; padding: 4px 2px 14px; }
@@ -102,6 +107,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .flow-stage-header span { color: #5268b7; font-weight: 800; }
 .feature-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; }
 .feature { padding: 6px 8px; border-radius: 6px; color: #324ca0; background: #e5eaff; font-size: .75rem; font-weight: 800; }
+.queued-feature { padding: 6px 8px; border-radius: 6px; color: #c0a312; background: #e5eaff; font-size: .75rem; font-weight: 800; }
 .completed-feature { color: #176b4d; background: #eaf8f1; }
 .join-stage { background: #fffaf0; }
 .waiting-feature { color: #8a5a00; background: #fff1ca; }
@@ -130,6 +136,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   overflow: hidden;
   transition: max-height 0.2s ease-out;
   background-color: #f1f1f1;
+  border-radius: 5px;
 }
 
 @media (max-width: 850px) {
@@ -141,6 +148,11 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   .page-header, .section-heading { display: block; }
   .status, .clock { display: inline-block; margin-top: 12px; }
   .controls-grid, .team-config-fields, .team-flow-stages, .metrics-grid { grid-template-columns: 1fr; }
-  .stage-editor-row { grid-template-columns: minmax(0, 1fr) minmax(100px, .6fr) 64px; }
-  .button-row { flex-wrap: wrap; }
+  .stage-editor-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 76px;
+  }
+  .stage-editor-row > button {
+    justify-self: end;
+  }
+.button-row { flex-wrap: wrap; }
 }

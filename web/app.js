@@ -1,15 +1,15 @@
 let nextStageId = 1;
 let nextTeamId = 1;
 
-function createStage(name, duration) {
-  return { id: `stage-${nextStageId++}`, name, duration };
+function createStage(name, duration, wipLimit) {
+  return { id: `stage-${nextStageId++}`, name, duration, wipLimit };
 }
 
 function createTeam(name, stages, reworkProbability = 0.2, reworkDuration = 1) {
   return {
     id: `team-${nextTeamId++}`,
     name,
-    stages: stages.map(([stageName, duration]) => createStage(stageName, duration)),
+    stages: stages.map(([stageName, duration, wipLimit]) => createStage(stageName, duration, wipLimit)),
     reworkProbability,
     reworkDuration,
     downstreamTeamIds: [],
@@ -17,8 +17,8 @@ function createTeam(name, stages, reworkProbability = 0.2, reworkDuration = 1) {
 }
 
 const teamConfigs = [
-  createTeam("Product dev team", [["Analyze", 2],["Design", 4], ["Test", 1]]),
-  createTeam("Release team", [["Integrate", 3], ["Stage", 2], ["Release", 1]]),
+  createTeam("Product dev team", [["Analyze", 2, 0],["Design", 4, 0], ["Test", 1, 0]]),
+  createTeam("Release team", [["Integrate", 3, 0], ["Stage", 2, 0], ["Release", 1, 0]]),
 ];
 teamConfigs[0].downstreamTeamIds = [teamConfigs[1].id];
 let selectedTeamId = teamConfigs[0].id;
@@ -215,16 +215,23 @@ function renderTeamEditor() {
       stageDuration.dataset.teamId = team.id;
       stageDuration.dataset.stageId = stage.id;
       stageDuration.dataset.stageField = "duration";
+      stageDuration.setAttribute("label", "Stage duration in days");
+      const stageWIPLimit = makeInput(stage.wipLimit, "number");
+      stageWIPLimit.min = "0";
+      stageWIPLimit.step = "1";
+      stageWIPLimit.dataset.teamId = team.id;
+      stageWIPLimit.dataset.stageId = stage.id;
+      stageWIPLimit.dataset.stageField = "wipLimit";
       const removeStage = document.createElement("button");
       removeStage.type = "button";
       removeStage.className = "icon-button";
       removeStage.dataset.action = "remove-stage";
       removeStage.dataset.teamId = team.id;
       removeStage.dataset.stageId = stage.id;
-      removeStage.textContent = "Remove";
+      removeStage.textContent = "🗑️";
       removeStage.setAttribute("aria-label", `Remove ${stage.name || "stage"} stage`);
       removeStage.disabled = team.stages.length === 1;
-      row.append(makeField("Stage", stageName), makeField("Duration (days)", stageDuration), removeStage);
+      row.append(makeField("Stage name", stageName), makeField("Duration (days)", stageDuration), makeField("WIP Limit (0 = no limit)", stageWIPLimit), removeStage);
       stages.append(row);
     }
     card.append(stages);
@@ -391,11 +398,49 @@ function advanceSimulation(days) {
     state.nextArrival += state.parameters.arrivalInterval;
   }
 
-  for (const feature of state.features) {
+  // New function structure to allow for limiting work in process (WIP) at each stage, and to handle rework and transfer of features between teams.
+  // Go through each team and advance the features in their stages, respecting WIP limits and rework probabilities.
+  // Should replace the previous simple loop that just advanced features without considering WIP or rework.
+  /*for (const feature of state.features) {
     if (feature.completed || feature.transferred) continue;
     const activeFrom = Math.max(previousTime, feature.readyAt);
     const activeDays = Math.max(0, state.simulationTime - activeFrom);
     advanceFeature(feature, activeDays, state.simulationTime);
+  }*/
+
+  for (const team of state.teams) {
+    advanceTeamFeatures(team, previousTime);
+  }
+}
+
+// Advance features for a specific team, considering WIP limits and rework. 
+// This function iterates through each stage of the team and processes the active features accordingly.
+// If a stage has a WIP limit, it will only process features up to that limit. 
+// If a feature is ready for rework, it will be processed accordingly.
+function advanceTeamFeatures(team, previousTime) {
+  //console.log(`Advancing features for team: ${team.name}`);
+  for (const stage of team.stages) {
+    // Find all active features for this team and stage that are not completed, transferred, or queued.
+    const activeFeatures = state.features.filter(
+      (feature) => feature.teamId === team.id && feature.stageIndex === team.stages.indexOf(stage) && !feature.completed && !feature.transferred && !feature.queued
+    );
+
+    // Add queued features to the active features list if they are ready to be processed and WIP limits allow it.
+    if (activeFeatures.length <= stage.wipLimit || stage.wipLimit === 0) {
+      const queuedFeatures = state.features.filter(
+        (feature) => feature.teamId === team.id && feature.stageIndex === team.stages.indexOf(stage) && !feature.completed && !feature.transferred && feature.queued
+      );
+      const availableSlots = stage.wipLimit === 0 ? queuedFeatures.length : Math.max(0, stage.wipLimit - activeFeatures.length);
+      activeFeatures.push(...queuedFeatures.slice(0, availableSlots));
+    }
+
+    // Advance each active feature for the current stage, considering the time elapsed and any rework that may be required.
+    for (const feature of activeFeatures) {
+      const activeFrom = Math.max(previousTime, feature.readyAt);
+      const activeDays = Math.max(0, state.simulationTime - activeFrom);
+      feature.queued = false; // Mark the feature as no longer queued since it's now active.
+      advanceFeature(feature, activeDays, state.simulationTime);
+    }
   }
 }
 
@@ -408,6 +453,7 @@ function createWorkItem(record, teamId, readyAt) {
     stageElapsed: 0,
     readyAt,
     reworkRemaining: 0,
+    queued: true,
     completed: false,
     transferred: false,
   };
@@ -826,12 +872,17 @@ function renderTeamFlow(team) {
     );
     const count = document.createElement("span");
     count.textContent = String(stageFeatures.length);
-    stageHeader.append(stageName, count);
+       stageHeader.append(stageName, count);
+   if (stage.wipLimit > 0) {
+      const stageWIPLimit = document.createElement("span");
+      stageWIPLimit.textContent = "[" + String(stage.wipLimit) + "]";
+      stageHeader.append(stageWIPLimit);
+    }
     const list = document.createElement("div");
     list.className = "feature-list";
     for (const feature of stageFeatures) {
       const chip = document.createElement("span");
-      chip.className = "feature";
+      chip.className = feature.queued ? "queued-feature" : "feature";
       chip.textContent = `F${feature.id}${feature.reworkRemaining ? " Rework" : ""}`;
       list.append(chip);
     }
@@ -964,7 +1015,7 @@ elements.teamEditor.addEventListener("click", (event) => {
 });
 
 elements.addTeam.addEventListener("click", () => {
-  const team = createTeam(`Team ${teamConfigs.length + 1}`, [["New", 2], ["Analysis", 3], ["Development", 5], ["Test", 3]]);
+  const team = createTeam(`Team ${teamConfigs.length + 1}`, [["New", 2, 0], ["Analysis", 3, 0], ["Development", 5, 0], ["Test", 3, 0]]);
   teamConfigs.push(team);
   selectedTeamId = team.id;
   renderTeamEditor();
