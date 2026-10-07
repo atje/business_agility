@@ -144,6 +144,7 @@ function renderTeamEditor() {
     nameInput.required = true;
     nameInput.dataset.teamId = team.id;
     nameInput.dataset.teamField = "name";
+    nameInput.setAttribute("title", "Give the team a name to identify it in the process flow");
     fields.append(makeField("Team name", nameInput));
 
     const probabilityInput = makeInput(team.reworkProbability, "number");
@@ -152,6 +153,7 @@ function renderTeamEditor() {
     probabilityInput.step = "0.01";
     probabilityInput.dataset.teamId = team.id;
     probabilityInput.dataset.teamField = "reworkProbability";
+    probabilityInput.setAttribute("title", "Probability of rework for features completed by the team, between 0 and 1 where 1 corresponds to 100% of features requiring rework");
     fields.append(makeField("Rework probability", probabilityInput));
 
     const durationInput = makeInput(team.reworkDuration, "number");
@@ -159,6 +161,7 @@ function renderTeamEditor() {
     durationInput.step = "0.1";
     durationInput.dataset.teamId = team.id;
     durationInput.dataset.teamField = "reworkDuration";
+    durationInput.setAttribute("title", "Duration in case of rework for features completed by the team, in days");
     fields.append(makeField("Rework duration (days)", durationInput));
 
     const downstream = document.createElement("fieldset");
@@ -215,13 +218,14 @@ function renderTeamEditor() {
       stageDuration.dataset.teamId = team.id;
       stageDuration.dataset.stageId = stage.id;
       stageDuration.dataset.stageField = "duration";
-      stageDuration.setAttribute("label", "Stage duration in days");
+      stageDuration.setAttribute("title", "Stage duration in days");
       const stageWIPLimit = makeInput(stage.wipLimit, "number");
       stageWIPLimit.min = "0";
       stageWIPLimit.step = "1";
       stageWIPLimit.dataset.teamId = team.id;
       stageWIPLimit.dataset.stageId = stage.id;
       stageWIPLimit.dataset.stageField = "wipLimit";
+      stageWIPLimit.setAttribute("title", "Work In Process limit for the stage, 0 = no limit");
       const removeStage = document.createElement("button");
       removeStage.type = "button";
       removeStage.className = "icon-button";
