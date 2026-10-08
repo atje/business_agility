@@ -885,6 +885,33 @@ function renderTeamFlow(team) {
 
   const stages = document.createElement("div");
   stages.className = "team-flow-stages";
+
+  const upstreamTeams = state.teams.filter((candidate) => candidate.downstreamTeamIds.includes(team.id));
+  if (upstreamTeams.length > 1) {
+    const waiting = [...state.joinBuffers.entries()].filter(([, buffer]) => buffer.teamId === team.id);
+    const joinStage = document.createElement("section");
+    joinStage.className = "flow-stage join-stage";
+    const joinHeader = document.createElement("div");
+    joinHeader.className = "flow-stage-header";
+    const joinTitle = document.createElement("h4");
+    joinTitle.textContent = "Waiting to join";
+    const joinCount = document.createElement("span");
+    joinCount.textContent = String(waiting.length);
+    joinHeader.append(joinTitle, joinCount);
+    const list = document.createElement("div");
+    list.className = "feature-list";
+    for (const [bufferKey, buffer] of waiting) {
+      const chip = document.createElement("span");
+      chip.className = "feature waiting-feature";
+      chip.textContent = `F${buffer.record.id} ${buffer.arrivals.size}/${upstreamTeams.length}`;
+      chip.title = `Waiting for ${upstreamTeams.length - buffer.arrivals.size} upstream team(s)`;
+      chip.dataset.bufferKey = bufferKey;
+      list.append(chip);
+    }
+    joinStage.append(joinHeader, list);
+    stages.append(joinStage);
+  }
+
   team.stages.forEach((stage, index) => {
     const stageElement = document.createElement("section");
     stageElement.className = "flow-stage";
@@ -922,32 +949,6 @@ function renderTeamFlow(team) {
     stageElement.append(stageHeader, list);
     stages.append(stageElement);
   });
-
-  const upstreamTeams = state.teams.filter((candidate) => candidate.downstreamTeamIds.includes(team.id));
-  if (upstreamTeams.length > 1) {
-    const waiting = [...state.joinBuffers.entries()].filter(([, buffer]) => buffer.teamId === team.id);
-    const joinStage = document.createElement("section");
-    joinStage.className = "flow-stage join-stage";
-    const joinHeader = document.createElement("div");
-    joinHeader.className = "flow-stage-header";
-    const joinTitle = document.createElement("h4");
-    joinTitle.textContent = "Waiting to join";
-    const joinCount = document.createElement("span");
-    joinCount.textContent = String(waiting.length);
-    joinHeader.append(joinTitle, joinCount);
-    const list = document.createElement("div");
-    list.className = "feature-list";
-    for (const [bufferKey, buffer] of waiting) {
-      const chip = document.createElement("span");
-      chip.className = "feature waiting-feature";
-      chip.textContent = `F${buffer.record.id} ${buffer.arrivals.size}/${upstreamTeams.length}`;
-      chip.title = `Waiting for ${upstreamTeams.length - buffer.arrivals.size} upstream team(s)`;
-      chip.dataset.bufferKey = bufferKey;
-      list.append(chip);
-    }
-    joinStage.append(joinHeader, list);
-    stages.append(joinStage);
-  }
 
   if (!team.downstreamTeamIds.length) {
     const completed = state.featureRecords.filter((feature) => feature.terminalOutputs.has(team.id));
