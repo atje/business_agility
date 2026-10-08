@@ -402,16 +402,6 @@ function advanceSimulation(days) {
     state.nextArrival += state.parameters.arrivalInterval;
   }
 
-  // New function structure to allow for limiting work in process (WIP) at each stage, and to handle rework and transfer of features between teams.
-  // Go through each team and advance the features in their stages, respecting WIP limits and rework probabilities.
-  // Should replace the previous simple loop that just advanced features without considering WIP or rework.
-  /*for (const feature of state.features) {
-    if (feature.completed || feature.transferred) continue;
-    const activeFrom = Math.max(previousTime, feature.readyAt);
-    const activeDays = Math.max(0, state.simulationTime - activeFrom);
-    advanceFeature(feature, activeDays, state.simulationTime);
-  }*/
-
   for (const team of state.teams) {
     advanceTeamFeatures(team, previousTime);
   }
@@ -422,7 +412,6 @@ function advanceSimulation(days) {
 // If a stage has a WIP limit, it will only process features up to that limit. 
 // If a feature is ready for rework, it will be processed accordingly.
 function advanceTeamFeatures(team, previousTime) {
-  //console.log(`Advancing features for team: ${team.name}`);
   for (const stage of team.stages) {
     // Find all active features for this team and stage that are not completed, transferred, or queued.
     const activeFeatures = state.features.filter(
@@ -448,6 +437,13 @@ function advanceTeamFeatures(team, previousTime) {
   }
 }
 
+// Calulate the Feature work time for a specific team and stage index, taking into account the variation set in the simulation
+function calcStageWorkTime(team, stageIndex) {
+  let workTime = team.stages[stageIndex].duration * (1 + (Math.random() * 2 - 1) * state.parameters.variability);
+  //console.log("calcStageWorkTime ", "team name: ", team.name, ",stage ",team.stages[stageIndex].name, ",stage duration: ", team.stages[stageIndex].duration, ",variation: ",state.parameters.variability, "workTime: ",workTime);
+  return Math.abs(workTime);
+}
+
 function createWorkItem(record, teamId, readyAt) {
   return {
     id: record.id,
@@ -456,6 +452,7 @@ function createWorkItem(record, teamId, readyAt) {
     stageIndex: 0,
     stageElapsed: 0,
     readyAt,
+    workTimeRemaining: calcStageWorkTime(state.teams.find((team) => team.id === teamId), 0),
     reworkRemaining: 0,
     queued: true,
     completed: false,
@@ -467,6 +464,7 @@ function advanceFeature(feature, days, endTime) {
   let remainingDays = days;
   let eventTime = endTime - days;
   while (remainingDays > 0.000001 && !feature.completed && !feature.transferred) {
+    //console.log("advanceFeature ", "feature id: ", feature.id, ",remainingDays: ", remainingDays, ",feature.workTimeRemaining: ", feature.workTimeRemaining, ",feature.reworkRemaining: ", feature.reworkRemaining, ",feature.stageIndex: ", feature.stageIndex);
     const team = state.teams.find((candidate) => candidate.id === feature.teamId);
     if (feature.reworkRemaining > 0) {
       const worked = Math.min(remainingDays, feature.reworkRemaining);
@@ -481,18 +479,19 @@ function advanceFeature(feature, days, endTime) {
       continue;
     }
 
-    const stage = team.stages[feature.stageIndex];
-    const stageRemaining = stage.duration - feature.stageElapsed;
-    const worked = Math.min(remainingDays, stageRemaining);
+    const worked = Math.min(remainingDays, feature.workTimeRemaining);
+
     feature.record.processingTime += worked;
-    feature.stageElapsed += worked;
+    feature.workTimeRemaining -= worked;
     remainingDays -= worked;
     eventTime += worked;
-    if (feature.stageElapsed + 0.000001 < stage.duration) continue;
 
-    feature.stageElapsed = 0;
+    if (feature.workTimeRemaining > 0) continue;
+
     if (feature.stageIndex < team.stages.length - 1) {
       feature.stageIndex += 1;
+      feature.workTimeRemaining = calcStageWorkTime(team, feature.stageIndex);
+      feature.readyAt = eventTime;
       feature.queued = true;
     } else if (team.reworkProbability > 0 && Math.random() < team.reworkProbability) {
       feature.reworkRemaining = team.reworkDuration;
@@ -893,7 +892,7 @@ function renderTeamFlow(team) {
     for (const feature of stageFeaturesGrouped.active ?? []) {
       const chip = document.createElement("span");
       chip.className = "feature";
-      chip.textContent = `F${feature.id}${feature.reworkRemaining ? " Rework" : ""}`;
+      chip.textContent = `F${feature.id}${feature.reworkRemaining ? " Rework "+feature.reworkRemaining.toFixed(1) : " "+feature.workTimeRemaining.toFixed(1)}`;
       list.append(chip);
     }
 
