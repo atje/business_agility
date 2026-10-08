@@ -8,8 +8,9 @@
             "type": "editor-browser",
             "request": "launch",
             "name": "Launch Integrated Browser against localhost",
-            "url": "http://localhost:5500",
-            "webRoot": "${workspaceFolder}/web/"
+            //"url": "http://localhost:5500",
+            //"webRoot": "${workspaceFolder}/web/"
+            "url": "${workspaceFolder}/web/index.html"
         }
     ]
 }
