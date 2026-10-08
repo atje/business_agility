@@ -1,5 +1,6 @@
 let nextStageId = 1;
 let nextTeamId = 1;
+const CONFIGURATION_STORAGE_KEY = "process-simulator-configurations";
 
 function createStage(name, duration, wipLimit) {
   return { id: `stage-${nextStageId++}`, name, duration, wipLimit };
@@ -64,6 +65,11 @@ const elements = {
   p95: document.querySelector("#p95-lead-time"),
   timingChart: document.querySelector("#feature-timing-chart"),
   infoButton: document.querySelector("#simulation-info-button"),
+  configurationName: document.querySelector("#configuration-name"),
+  savedConfiguration: document.querySelector("#saved-configuration-select"),
+  saveConfiguration: document.querySelector("#save-configuration-button"),
+  loadConfiguration: document.querySelector("#load-configuration-button"),
+  deleteConfiguration: document.querySelector("#delete-configuration-button"),
 };
 
 function readParameters() {
@@ -245,8 +251,8 @@ function renderTeamEditor() {
   elements.teamEditor.replaceChildren(fragment);
 }
 
-function validateTeams() {
-  for (const team of teamConfigs) {
+function validateTeamSet(teams) {
+  for (const team of teams) {
     if (!team.name.trim()) return "Every team needs a name.";
     if (!team.stages.length) return `${team.name} needs at least one process stage.`;
     if (
@@ -262,7 +268,7 @@ function validateTeams() {
     if (
       !Array.isArray(team.downstreamTeamIds) ||
       team.downstreamTeamIds.some((teamId) =>
-        teamId === team.id || !teamConfigs.some((candidate) => candidate.id === teamId),
+       teamId === team.id || !teams.some((candidate) => candidate.id === teamId),
       )
     ) {
       return `${team.name} has an invalid downstream connection.`;
@@ -271,6 +277,9 @@ function validateTeams() {
       if (!stage.name.trim()) return `${team.name} has a stage without a name.`;
       if (!Number.isFinite(stage.duration) || stage.duration <= 0) {
         return `${team.name}: ${stage.name} duration must be greater than zero.`;
+      }
+      if (!Number.isInteger(stage.wipLimit) || stage.wipLimit < 0) {
+        return `${team.name}: ${stage.name} WIP limit must be zero or greater.`;
       }
     }
   }
@@ -281,17 +290,205 @@ function validateTeams() {
     if (visiting.has(teamId)) return false;
     if (visited.has(teamId)) return true;
     visiting.add(teamId);
-    const team = teamConfigs.find((candidate) => candidate.id === teamId);
+    const team = teams.find((candidate) => candidate.id === teamId);
     if (!team.downstreamTeamIds.every((downstreamTeamId) => visit(downstreamTeamId))) return false;
     visiting.delete(teamId);
     visited.add(teamId);
     return true;
   }
 
-  if (!teamConfigs.every((team) => visit(team.id))) {
+  if (!teams.every((team) => visit(team.id))) {
     return "Team connections cannot contain a cycle.";
   }
   return "";
+}
+
+function validateTeams() {
+  return validateTeamSet(teamConfigs);
+}
+
+function readSavedConfigurations() {
+  const serialized = localStorage.getItem(CONFIGURATION_STORAGE_KEY);
+  if (serialized === null) return [];
+  const configurations = JSON.parse(serialized);
+  if (
+    !Array.isArray(configurations) ||
+    configurations.some((configuration) =>
+      !configuration || typeof configuration.name !== "string" || !configuration.config,
+    )
+  ) {
+    throw new Error("Saved configurations have an invalid format.");
+  }
+  return configurations;
+}
+
+function refreshSavedConfigurations(selectedName = "") {
+  const configurations = readSavedConfigurations();
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Select a configuration";
+  const options = configurations.map((configuration) => {
+    const option = document.createElement("option");
+    option.value = configuration.name;
+    option.textContent = configuration.name;
+    return option;
+  });
+  elements.savedConfiguration.replaceChildren(placeholder, ...options);
+  elements.savedConfiguration.value = selectedName;
+  elements.loadConfiguration.disabled = !selectedName;
+  elements.deleteConfiguration.disabled = !selectedName;
+}
+
+function validateSavedConfiguration(configuration) {
+  if (
+    !configuration ||
+    configuration.version !== 1 ||
+    !configuration.parameters ||
+    !Array.isArray(configuration.teams) ||
+    configuration.teams.length === 0
+  ) {
+    return "The selected configuration has an invalid format.";
+  }
+
+  const { featureCount, arrivalInterval, speed, variability } = configuration.parameters;
+  const validSpeeds = [...elements.form.elements.speed.options].map((option) => Number(option.value));
+  const validVariabilities = [...elements.form.elements.variability.options].map((option) => Number(option.value));
+  if (
+    !Number.isInteger(featureCount) || featureCount < 1 || featureCount > 1000 ||
+    !Number.isFinite(arrivalInterval) || arrivalInterval < 0.1 ||
+    !validSpeeds.includes(speed) || !validVariabilities.includes(variability)
+  ) {
+    return "The selected configuration has invalid simulation parameters.";
+  }
+
+  const teamIds = new Set();
+  for (const team of configuration.teams) {
+    if (
+      !team ||
+      typeof team.id !== "string" ||
+      teamIds.has(team.id) ||
+      typeof team.name !== "string" ||
+      !Number.isFinite(team.reworkProbability) ||
+      !Number.isFinite(team.reworkDuration) ||
+      !Array.isArray(team.downstreamTeamIds) ||
+      !team.downstreamTeamIds.every((teamId) => typeof teamId === "string") ||
+      !Array.isArray(team.stages) ||
+      team.stages.some((stage) =>
+        !stage ||
+        typeof stage.id !== "string" ||
+        typeof stage.name !== "string" ||
+        !Number.isFinite(stage.duration) ||
+        !Number.isInteger(stage.wipLimit) ||
+        stage.wipLimit < 0,
+      )
+    ) {
+      return "The selected configuration has invalid team or stage data.";
+    }
+    teamIds.add(team.id);
+  }
+
+  const restoredTeams = configuration.teams.map((team) => ({
+    ...team,
+    id: `restore-${team.id}`,
+    stages: team.stages.map((stage) => ({ ...stage, id: `restore-${stage.id}` })),
+    downstreamTeamIds: team.downstreamTeamIds.map((teamId) => `restore-${teamId}`),
+  }));
+  return validateTeamSet(restoredTeams);
+}
+
+function saveConfiguration() {
+  const name = elements.configurationName.value.trim();
+  if (!name) {
+    setStatus("Enter a name for this configuration.", "status-error");
+    elements.configurationName.focus();
+    return;
+  }
+  const configurationError = validateTeams();
+  if (configurationError) {
+    setStatus(configurationError, "status-error");
+    return;
+  }
+  if (!elements.form.reportValidity()) return;
+
+  try {
+    const configurations = readSavedConfigurations();
+    const existingIndex = configurations.findIndex((configuration) => configuration.name === name);
+    if (existingIndex !== -1 && !window.confirm(`Replace the saved configuration "${name}"?`)) return;
+    const entry = {
+      name,
+      config: {
+        version: 1,
+        parameters: readParameters(),
+        teams: copyTeams(teamConfigs),
+      },
+    };
+    if (existingIndex === -1) configurations.push(entry);
+    else configurations[existingIndex] = entry;
+    localStorage.setItem(CONFIGURATION_STORAGE_KEY, JSON.stringify(configurations));
+    refreshSavedConfigurations(name);
+    setStatus(`Configuration "${name}" saved.`);
+  } catch (error) {
+    setStatus(`Could not save configuration: ${error.message}`, "status-error");
+  }
+}
+
+function restoreConfiguration() {
+  const name = elements.savedConfiguration.value;
+  if (!name) return;
+  try {
+    const entry = readSavedConfigurations().find((configuration) => configuration.name === name);
+    if (!entry) {
+      setStatus("The selected saved configuration could not be found.", "status-error");
+      refreshSavedConfigurations();
+      return;
+    }
+    const configurationError = validateSavedConfiguration(entry.config);
+    if (configurationError) {
+      setStatus(configurationError, "status-error");
+      return;
+    }
+
+    const restoredTeams = entry.config.teams.map((team) => ({
+      ...team,
+      id: `team-${nextTeamId++}`,
+      stages: team.stages.map((stage) => ({
+        ...stage,
+        id: `stage-${nextStageId++}`,
+      })),
+    }));
+    const idMap = new Map(entry.config.teams.map((team, index) => [team.id, restoredTeams[index].id]));
+    for (let index = 0; index < restoredTeams.length; index += 1) {
+      restoredTeams[index].downstreamTeamIds = entry.config.teams[index].downstreamTeamIds
+        .map((teamId) => idMap.get(teamId));
+    }
+
+    teamConfigs.splice(0, teamConfigs.length, ...restoredTeams);
+    selectedTeamId = teamConfigs[0].id;
+    elements.form.elements.featureCount.value = entry.config.parameters.featureCount;
+    elements.form.elements.arrivalInterval.value = entry.config.parameters.arrivalInterval;
+    elements.form.elements.speed.value = entry.config.parameters.speed;
+    elements.form.elements.variability.value = entry.config.parameters.variability;
+    elements.configurationName.value = name;
+    resetSimulation();
+    renderTeamEditor();
+    refreshTeamPreview();
+    setStatus(`Configuration "${name}" restored.`);
+  } catch (error) {
+    setStatus(`Could not restore configuration: ${error.message}`, "status-error");
+  }
+}
+
+function deleteConfiguration() {
+  const name = elements.savedConfiguration.value;
+  if (!name || !window.confirm(`Delete the saved configuration "${name}"?`)) return;
+  try {
+    const configurations = readSavedConfigurations().filter((configuration) => configuration.name !== name);
+    localStorage.setItem(CONFIGURATION_STORAGE_KEY, JSON.stringify(configurations));
+    refreshSavedConfigurations();
+    setStatus(`Configuration "${name}" deleted.`);
+  } catch (error) {
+    setStatus(`Could not delete configuration: ${error.message}`, "status-error");
+  }
 }
 
 function setStatus(message, statusClass = "status-idle") {
@@ -325,6 +522,11 @@ function setTeamEditorDisabled(disabled) {
       control.dataset.action === "remove-stage" && teamConfigs.find((team) => team.id === control.dataset.teamId)?.stages.length === 1;
   });
   elements.addTeam.disabled = disabled;
+  elements.configurationName.disabled = disabled;
+  elements.savedConfiguration.disabled = disabled;
+  elements.saveConfiguration.disabled = disabled;
+  elements.loadConfiguration.disabled = disabled || !elements.savedConfiguration.value;
+  elements.deleteConfiguration.disabled = disabled || !elements.savedConfiguration.value;
 }
 
 function startSimulation(event) {
@@ -1028,7 +1230,7 @@ elements.teamEditor.addEventListener("click", (event) => {
     return;
   }
   if (button.dataset.action === "add-stage") {
-    team.stages.push(createStage("New stage", 1));
+    team.stages.push(createStage("New stage", 1, 0));
   } else if (button.dataset.action === "remove-stage") {
     team.stages = team.stages.filter((stage) => stage.id !== button.dataset.stageId);
   } else if (button.dataset.action === "remove-team") {
@@ -1096,8 +1298,21 @@ elements.teamEditor.addEventListener("keydown", (event) => {
 elements.form.addEventListener("submit", startSimulation);
 elements.pause.addEventListener("click", togglePause);
 elements.reset.addEventListener("click", resetSimulation);
+elements.saveConfiguration.addEventListener("click", saveConfiguration);
+elements.loadConfiguration.addEventListener("click", restoreConfiguration);
+elements.deleteConfiguration.addEventListener("click", deleteConfiguration);
+elements.savedConfiguration.addEventListener("change", () => {
+  elements.configurationName.value = elements.savedConfiguration.value;
+  elements.loadConfiguration.disabled = !elements.savedConfiguration.value;
+  elements.deleteConfiguration.disabled = !elements.savedConfiguration.value;
+});
 renderTeamEditor();
 resetSimulation();
+try {
+  refreshSavedConfigurations();
+} catch (error) {
+  setStatus(`Could not read saved configurations: ${error.message}`, "status-error");
+}
 
 function refreshTeamPreview() {
   state.teams = copyTeams(teamConfigs);

@@ -63,6 +63,11 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .chart-empty-state { fill: #667985; font-size: 14px; }
 .section-heading { align-items: center; }
 .section-heading h2 { margin-bottom: 0; }
+.configuration-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin: 18px 0; }
+.configuration-note { flex: 1 1 100%; margin: 0; color: #667085; font-size: .85rem; }
+.configuration-controls label { min-width: 190px; }
+.configuration-controls label:first-child { flex: 1 1 190px; }
+.configuration-controls select { min-width: 220px; }
 .team-editor { display: grid; gap: 14px; }
 .team-tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid #dbe3ea; }
 .team-tab { flex: 0 0 auto; min-height: 42px; padding: 0 16px; border: 0; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; color: #536471; background: transparent; }
@@ -157,6 +162,9 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   .page-header, .section-heading { display: block; }
   .status, .clock { display: inline-block; margin-top: 12px; }
   .controls-grid, .team-config-fields, .team-flow-stages, .metrics-grid { grid-template-columns: 1fr; }
+  .configuration-controls { align-items: stretch; }
+  .configuration-controls label, .configuration-controls label:first-child { flex: 1 1 100%; }
+  .configuration-controls select { min-width: 0; }
   .stage-editor-row {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 76px;
   }

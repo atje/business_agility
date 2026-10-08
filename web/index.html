@@ -42,6 +42,23 @@
 </div>
       <section class="controls-panel" aria-labelledby="controls-heading">
         <h2 id="controls-heading">Parameters</h2>
+        <div class="configuration-controls" aria-label="Saved configurations">
+          <p class="configuration-note">Saved configurations are stored only in this browser.</p>
+          <label>
+            Configuration name
+            <input id="configuration-name" type="text" maxlength="80" placeholder="e.g. Current process" />
+          </label>
+          <button id="save-configuration-button" type="button">Save configuration</button>
+          <label>
+            Saved configurations
+            <select id="saved-configuration-select">
+              <option value="">Select a configuration</option>
+            </select>
+          </label>
+          <button id="load-configuration-button" type="button" disabled>Restore</button>
+          <button id="delete-configuration-button" type="button" disabled>Delete</button>
+        </div>
+        <br><hr><br>
         <form id="simulation-form" class="controls-grid">
           <label title="Features are the work items that flow through the system. The simulation runs until all features have been completed.">
             Features
