@@ -848,6 +848,26 @@ function drawTeamConnections(canvas, svg, teamNodes) {
   }
 }
 
+// Render a list of features for a given stage, showing active and queued features with their respective work times and rework times.
+// If there are more than 'limit features, it will display a message indicating how many more features are present.
+function renderFeatureList(list, features, classname = "feature", limit = 10) {
+    let actInd = 0;
+    for (const feature of features ?? []) {
+     const chip = document.createElement("span");
+     chip.className = classname;
+     chip.textContent = `F${feature.id}${feature.reworkRemaining ? " Rework "+feature.reworkRemaining.toFixed(1) : (feature.workTimeRemaining && !feature.queued ? " "+feature.workTimeRemaining.toFixed(1) : "")}`;
+     list.append(chip);
+     actInd++;
+     if (actInd > limit) {
+       const more = document.createElement("span");
+       more.textContent = `... ${features.length - limit} more`;
+       list.append(more);
+       break;
+     }
+   }
+}
+
+
 function renderTeamFlow(team) {
   const panel = document.createElement("article");
   panel.className = "team-flow-panel";
@@ -888,13 +908,7 @@ function renderTeamFlow(team) {
 
     const stageFeaturesGrouped = Object.groupBy(stageFeatures, (feature) => feature.queued == true ? "queued" : "active");
 
-    // Layout Features in the stage being worked on
-    for (const feature of stageFeaturesGrouped.active ?? []) {
-      const chip = document.createElement("span");
-      chip.className = "feature";
-      chip.textContent = `F${feature.id}${feature.reworkRemaining ? " Rework "+feature.reworkRemaining.toFixed(1) : " "+feature.workTimeRemaining.toFixed(1)}`;
-      list.append(chip);
-    }
+    renderFeatureList(list, stageFeaturesGrouped.active);
 
     // Add a horizontal divider if the stage has a WIP limit
     if (stage.wipLimit > 0) {
@@ -903,13 +917,7 @@ function renderTeamFlow(team) {
       list.append(queuedHeader);
     }
 
-    // Add queued features to the list if they are waiting to be processed due to WIP limits
-    for (const feature of stageFeaturesGrouped.queued ?? []) {
-      const chip = document.createElement("span");
-      chip.className = "queued-feature";
-      chip.textContent = `F${feature.id}`;
-      list.append(chip);
-    }
+    renderFeatureList(list, stageFeaturesGrouped.queued, "queued-feature");
     
     stageElement.append(stageHeader, list);
     stages.append(stageElement);
@@ -954,12 +962,9 @@ function renderTeamFlow(team) {
     doneHeader.append(doneTitle, doneCount);
     const list = document.createElement("div");
     list.className = "feature-list";
-    for (const feature of completed) {
-      const chip = document.createElement("span");
-      chip.className = "feature completed-feature";
-      chip.textContent = `F${feature.id}`;
-      list.append(chip);
-    }
+
+    renderFeatureList(list, completed.reverse(), "feature completed-feature");
+
     doneStage.append(doneHeader, list);
     stages.append(doneStage);
   }
