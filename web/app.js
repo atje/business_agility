@@ -493,6 +493,7 @@ function advanceFeature(feature, days, endTime) {
     feature.stageElapsed = 0;
     if (feature.stageIndex < team.stages.length - 1) {
       feature.stageIndex += 1;
+      feature.queued = true;
     } else if (team.reworkProbability > 0 && Math.random() < team.reworkProbability) {
       feature.reworkRemaining = team.reworkDuration;
       if (feature.reworkRemaining === 0) finishTeam(feature, team, eventTime);
@@ -505,6 +506,7 @@ function advanceFeature(feature, days, endTime) {
 function finishTeam(feature, team, completedAt) {
   feature.transferred = true;
   if (team.downstreamTeamIds.length) {
+    feature.queued = true;
     for (const downstreamTeamId of team.downstreamTeamIds) {
       const upstreamTeams = state.teams.filter((candidate) =>
         candidate.downstreamTeamIds.includes(downstreamTeamId),
@@ -884,12 +886,32 @@ function renderTeamFlow(team) {
     }
     const list = document.createElement("div");
     list.className = "feature-list";
-    for (const feature of stageFeatures) {
+
+    const stageFeaturesGrouped = Object.groupBy(stageFeatures, (feature) => feature.queued == true ? "queued" : "active");
+
+    // Layout Features in the stage being worked on
+    for (const feature of stageFeaturesGrouped.active ?? []) {
       const chip = document.createElement("span");
-      chip.className = feature.queued ? "queued-feature" : "feature";
+      chip.className = "feature";
       chip.textContent = `F${feature.id}${feature.reworkRemaining ? " Rework" : ""}`;
       list.append(chip);
     }
+
+    // Add a horizontal divider if the stage has a WIP limit
+    if (stage.wipLimit > 0) {
+      const queuedHeader = document.createElement("hr");
+      queuedHeader.className = "horizontal-divider";
+      list.append(queuedHeader);
+    }
+
+    // Add queued features to the list if they are waiting to be processed due to WIP limits
+    for (const feature of stageFeaturesGrouped.queued ?? []) {
+      const chip = document.createElement("span");
+      chip.className = "queued-feature";
+      chip.textContent = `F${feature.id}`;
+      list.append(chip);
+    }
+    
     stageElement.append(stageHeader, list);
     stages.append(stageElement);
   });
