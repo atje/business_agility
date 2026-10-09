@@ -19,24 +19,37 @@
         <div id="status" class="status status-idle" role="status">Ready</div>
       </header>
 
-<button id="simulation-info-button" class="collapsible-button">About</button>
+<button id="simulation-info-button" class="collapsible-button">About (click to expand)</button>
 <div id="simulation-info-content" class="info-content">
   <p>
-    The purpose of this simulation is to demonstrate how changes in process assumptions can impact overall performance of the system. No information is collected, everything is running solely in your local browser.
+    The purpose of this simulation is to demonstrate how changes in process assumptions can impact overall performance of the system. 
+    No information is collected, everything is running solely in your local browser.
   </p>
   <p>
-    You start by configuring the organization through the <b>Teams and handoffs</b> section. You can add teams, set their capacity, and define how work is handed off between them.
-    You can configure the simulation parameters in the <b>Parameters</b> section. Hover over the parameter fields to see a description of what they mean. 
+    You start by configuring the organization through the <b>Teams and handoffs</b> section. You can add teams, set their work stages, and define how work is handed off between them. 
+    The Editor can be hidden to give more space to the simulation view.
+    </p>
+    
+  <p>You can configure the simulation parameters in the <b>Parameters</b> section. Hover over the parameter fields to see a description of what they mean. 
+    Once you have configured the teams and parameters, you can save and later reload configurations. 
+    It is possible to have multiple configurations saved in the browser, and you can switch between them at any time.
   </p>
   <p> 
-    In the <b>Process flow</b> section you can see how teams are interacting with each other and a live view of how work is moving through the system. If a Feature dependent on multiple teams, it will be blocked until all teams have completed their work.
-    There you also see the current simulation time, which is measured in days
+    In the <b>Process flow</b> section you can see how teams are interacting with each other and a live view of how work is moving through the system. If a work item is dependent on multiple teams, it will be blocked until all teams have completed their work.
+    There you also see the current simulation time, which is measured in days.
   </p>
   <p>
-    The <b>Lead time and processing ratio</b> chart shows the lead time of each feature on the horizontal axis, and the processing ratio (processing time divided by lead time) on the vertical axis. The size of each bubble represents how many features are represented by that point. The chart is updated in real-time as the simulation runs.
+    The <b>Lead time and processing ratio</b> chart shows the lead time of each work item on the horizontal axis, and the processing ratio (processing time divided by lead time) on the vertical axis. The size of each bubble represents how many work items are represented by that point. The chart is updated in real-time as the simulation runs.
   </p>
   <p>
-      Finally, click <b><i>Start simulation</i></b> to see how work flows through the system.</p>
+      Click <b><i>Start simulation</i></b> to see how work flows through the system.</p>
+
+      <b>Known issues:</b> 
+      <ul>
+        <li>Processing time is currently not correctly calculated for work items that are blocked by multiple teams. 
+          It will show the sum of the processing times for all teams involved, which leads to an overestimation of the actual processing time.</li>
+      </ul>
+      <br>
   <p>Enjoy!</p>
 </div>
       <section class="controls-panel" aria-labelledby="controls-heading">
@@ -59,9 +72,9 @@
         </div>
         <br><hr><br>
         <form id="simulation-form" class="controls-grid">
-          <label title="Features are the work items that flow through the system. The simulation runs until all features have been completed.">
-            Features
-            <input name="featureCount" type="number" min="1" max="1000" value="30" />
+          <label title="Work items are the entities that flow through the system. The simulation runs until all work items have been completed.">
+            Work items
+            <input name="workItemCount" type="number" min="1" max="1000" value="30" />
           </label>
           <label title="Arrival interval is the average time between new work items entering the system. A lower arrival interval means more frequent arrivals.">
             Arrival interval (days)
@@ -147,16 +160,16 @@
           <div class="chart-legend" aria-label="Chart legend">
             <span><i class="legend-dot legend-active"></i>In progress</span>
             <span><i class="legend-dot legend-complete"></i>Completed</span>
-            <span class="bubble-legend"><i class="bubble-dot bubble-small">1</i><i class="bubble-dot bubble-large">4</i>Features per point</span>
+            <span class="bubble-legend"><i class="bubble-dot bubble-small">1</i><i class="bubble-dot bubble-large">4</i>Work items per point</span>
           </div>
           <div class="clock">Day <strong id="chart-simulation-time">0.0</strong></div>
         </div>
         <svg
-          id="feature-timing-chart"
-          class="feature-timing-chart"
+          id="workitem-timing-chart"
+          class="workitem-timing-chart"
           viewBox="0 0 760 420"
           role="img"
-          aria-label="Feature lead time on the horizontal axis and processing time divided by lead time on the vertical axis. Bubble size represents feature count."
+          aria-label="Work item lead time on the horizontal axis and processing time divided by lead time on the vertical axis. Bubble size represents work item count."
         ></svg>
       </section>
 

@@ -34,8 +34,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .stage { min-height: 170px; border: 1px solid #e1e7f0; border-radius: 10px; background: #f8fafc; overflow: hidden; }
 .stage-header { display: flex; justify-content: space-between; padding: 14px; border-bottom: 1px solid #e1e7f0; background: #fff; }
 .stage-header span { color: #5268b7; font-weight: 800; }
-.feature-list { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px; }
-.feature { padding: 7px 9px; border-radius: 7px; color: #324ca0; background: #e5eaff; font-size: .8rem; font-weight: 800; }
+.workitem-list { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px; }
+.workitem { padding: 7px 9px; border-radius: 7px; color: #324ca0; background: #e5eaff; font-size: .8rem; font-weight: 800; }
 .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px; }
 .metric-card { display: grid; gap: 8px; padding: 18px; }
 .metric-card span { color: #667085; font-size: .85rem; }
@@ -50,7 +50,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .bubble-dot { display: inline-grid; place-items: center; border: 1px solid #78909c; border-radius: 50%; color: #334653; font-size: 9px; font-style: normal; }
 .bubble-small { width: 17px; height: 17px; }
 .bubble-large { width: 25px; height: 25px; }
-.feature-timing-chart { display: block; width: 100%; height: auto; min-height: 260px; overflow: visible; }
+.workitem-timing-chart { display: block; width: 100%; height: auto; min-height: 260px; overflow: visible; }
 .chart-gridline { stroke: #e7edf0; stroke-width: 1; }
 .chart-axis { stroke: #667985; stroke-width: 1.5; }
 .chart-tick { fill: #667985; font-size: 12px; }
@@ -111,12 +111,12 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .flow-stage-header { display: flex; justify-content: space-between; gap: 8px; padding: 10px; border-bottom: 1px solid #e1e7f0; }
 .flow-stage-header h4 { margin: 0; font-size: .85rem; overflow-wrap: anywhere; }
 .flow-stage-header span { color: #5268b7; font-weight: 800; }
-.feature-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; }
-.feature { padding: 6px 8px; border-radius: 6px; color: #324ca0; background: #e5eaff; font-size: .75rem; font-weight: 800; }
-.queued-feature { padding: 6px 8px; border-radius: 6px; color: #c0a312; background: #e5eaff; font-size: .75rem; font-weight: 800; }
-.completed-feature { color: #176b4d; background: #eaf8f1; }
+.workitem-list { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; }
+.workitem { padding: 6px 8px; border-radius: 6px; color: #324ca0; background: #e5eaff; font-size: .75rem; font-weight: 800; }
+.queued-workitem { padding: 6px 8px; border-radius: 6px; color: #c0a312; background: #e5eaff; font-size: .75rem; font-weight: 800; }
+.completed-workitem { color: #176b4d; background: #eaf8f1; }
 .join-stage { background: #fffaf0; }
-.waiting-feature { color: #8a5a00; background: #fff1ca; }
+.waiting-workitem { color: #8a5a00; background: #fff1ca; }
 .status-error { color: #9d2b24; background: #fff0ee; }
 
 .collapsible-button {

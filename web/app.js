@@ -3,7 +3,7 @@ let nextTeamId = 1;
 const CONFIGURATION_STORAGE_KEY = "process-simulator-configurations";
 
 // Set version number
-document.querySelector("#version-number").textContent = "BETA-0.12 (2026-10-09)";
+document.querySelector("#version-number").textContent = "BETA-0.20 (Released 2026-10-09)";
 
 function createStage(name, duration, wipLimit) {
   return { id: `stage-${nextStageId++}`, name, duration, wipLimit };
@@ -41,9 +41,9 @@ const state = {
   lastFrame: null,
   nextArrival: 0,
   simulationTime: 0,
-  nextFeatureId: 1,
-  features: [],
-  featureRecords: [],
+  nextWorkItemId: 1,
+  workItems: [],
+  workItemRecords: [],
   joinBuffers: new Map(),
   terminalTeamIds: [],
   leadTimes: [],
@@ -66,7 +66,7 @@ const elements = {
   inProcess: document.querySelector("#in-process-count"),
   average: document.querySelector("#average-lead-time"),
   p95: document.querySelector("#p95-lead-time"),
-  timingChart: document.querySelector("#feature-timing-chart"),
+  timingChart: document.querySelector("#workitem-timing-chart"),
   infoButton: document.querySelector("#simulation-info-button"),
   configurationName: document.querySelector("#configuration-name"),
   savedConfiguration: document.querySelector("#saved-configuration-select"),
@@ -78,7 +78,7 @@ const elements = {
 function readParameters() {
   const formData = new FormData(elements.form);
   return {
-    featureCount: Number(formData.get("featureCount")),
+    workItemCount: Number(formData.get("workItemCount")),
     arrivalInterval: Number(formData.get("arrivalInterval")),
     speed: Number(formData.get("speed")),
     variability: Number(formData.get("variability")),
@@ -162,7 +162,7 @@ function renderTeamEditor() {
     probabilityInput.step = "0.01";
     probabilityInput.dataset.teamId = team.id;
     probabilityInput.dataset.teamField = "reworkProbability";
-    probabilityInput.setAttribute("title", "Probability of rework for features completed by the team, between 0 and 1 where 1 corresponds to 100% of features requiring rework");
+    probabilityInput.setAttribute("title", "Probability of rework for workItems completed by the team, between 0 and 1 where 1 corresponds to 100% of workItems requiring rework");
     fields.append(makeField("Rework probability", probabilityInput));
 
     const durationInput = makeInput(team.reworkDuration, "number");
@@ -170,7 +170,7 @@ function renderTeamEditor() {
     durationInput.step = "0.1";
     durationInput.dataset.teamId = team.id;
     durationInput.dataset.teamField = "reworkDuration";
-    durationInput.setAttribute("title", "Duration in case of rework for features completed by the team, in days");
+    durationInput.setAttribute("title", "Duration in case of rework for workItems completed by the team, in days");
     fields.append(makeField("Rework duration (days)", durationInput));
 
     const downstream = document.createElement("fieldset");
@@ -353,11 +353,11 @@ function validateSavedConfiguration(configuration) {
     return "The selected configuration has an invalid format.";
   }
 
-  const { featureCount, arrivalInterval, speed, variability } = configuration.parameters;
+  const { workItemCount, arrivalInterval, speed, variability } = configuration.parameters;
   const validSpeeds = [...elements.form.elements.speed.options].map((option) => Number(option.value));
   const validVariabilities = [...elements.form.elements.variability.options].map((option) => Number(option.value));
   if (
-    !Number.isInteger(featureCount) || featureCount < 1 || featureCount > 1000 ||
+    !Number.isInteger(workItemCount) || workItemCount < 1 || workItemCount > 1000 ||
     !Number.isFinite(arrivalInterval) || arrivalInterval < 0.1 ||
     !validSpeeds.includes(speed) || !validVariabilities.includes(variability)
   ) {
@@ -467,7 +467,7 @@ function restoreConfiguration() {
 
     teamConfigs.splice(0, teamConfigs.length, ...restoredTeams);
     selectedTeamId = teamConfigs[0].id;
-    elements.form.elements.featureCount.value = entry.config.parameters.featureCount;
+    elements.form.elements.workItemCount.value = entry.config.parameters.workItemCount;
     elements.form.elements.arrivalInterval.value = entry.config.parameters.arrivalInterval;
     elements.form.elements.speed.value = entry.config.parameters.speed;
     elements.form.elements.variability.value = entry.config.parameters.variability;
@@ -505,9 +505,9 @@ function resetSimulation() {
   state.lastFrame = null;
   state.nextArrival = 0;
   state.simulationTime = 0;
-  state.nextFeatureId = 1;
-  state.features = [];
-  state.featureRecords = [];
+  state.nextWorkItemId = 1;
+  state.workItems = [];
+  state.workItemRecords = [];
   state.joinBuffers = new Map();
   state.terminalTeamIds = [];
   state.leadTimes = [];
@@ -571,7 +571,7 @@ function tick(timestamp) {
   advanceSimulation(elapsedDays);
   render();
 
-  if (state.leadTimes.length >= state.parameters.featureCount) {
+  if (state.leadTimes.length >= state.parameters.workItemCount) {
     state.running = false;
     elements.pause.disabled = true;
     setTeamEditorDisabled(false);
@@ -586,63 +586,63 @@ function advanceSimulation(days) {
   state.simulationTime += days;
 
   while (
-    state.nextFeatureId <= state.parameters.featureCount &&
+    state.nextWorkItemId <= state.parameters.workItemCount &&
     state.simulationTime >= state.nextArrival
   ) {
     const roots = state.teams.filter(
       (team) => !state.teams.some((candidate) => candidate.downstreamTeamIds.includes(team.id)),
     );
     const record = {
-      id: state.nextFeatureId++,
+      id: state.nextWorkItemId++,
       startTime: state.nextArrival,
       processingTime: 0,
       leadTime: null,
       terminalOutputs: new Set(),
       completed: false,
     };
-    state.featureRecords.push(record);
+    state.workItemRecords.push(record);
     for (const sourceTeam of roots) {
-      state.features.push(createWorkItem(record, sourceTeam.id, state.nextArrival));
+      state.workItems.push(createWorkItem(record, sourceTeam.id, state.nextArrival));
     }
     state.nextArrival += state.parameters.arrivalInterval;
   }
 
   for (const team of state.teams) {
-    advanceTeamFeatures(team, previousTime);
+    advanceTeamWorkItems(team, previousTime);
   }
 }
 
-// Advance features for a specific team, considering WIP limits and rework. 
-// This function iterates through each stage of the team and processes the active features accordingly.
-// If a stage has a WIP limit, it will only process features up to that limit. 
-// If a feature is ready for rework, it will be processed accordingly.
-function advanceTeamFeatures(team, previousTime) {
+// Advance workItems for a specific team, considering WIP limits and rework. 
+// This function iterates through each stage of the team and processes the active workItems accordingly.
+// If a stage has a WIP limit, it will only process workItems up to that limit. 
+// If a workItem is ready for rework, it will be processed accordingly.
+function advanceTeamWorkItems(team, previousTime) {
   for (const stage of team.stages) {
-    // Find all active features for this team and stage that are not completed, transferred, or queued.
-    const activeFeatures = state.features.filter(
-      (feature) => feature.teamId === team.id && feature.stageIndex === team.stages.indexOf(stage) && !feature.completed && !feature.transferred && !feature.queued
+    // Find all active workItems for this team and stage that are not completed, transferred, or queued.
+    const activeWorkItems = state.workItems.filter(
+      (workItem) => workItem.teamId === team.id && workItem.stageIndex === team.stages.indexOf(stage) && !workItem.completed && !workItem.transferred && !workItem.queued
     );
 
-    // Add queued features to the active features list if they are ready to be processed and WIP limits allow it.
-    if (activeFeatures.length <= stage.wipLimit || stage.wipLimit === 0) {
-      const queuedFeatures = state.features.filter(
-        (feature) => feature.teamId === team.id && feature.stageIndex === team.stages.indexOf(stage) && !feature.completed && !feature.transferred && feature.queued
+    // Add queued workItems to the active workItems list if they are ready to be processed and WIP limits allow it.
+    if (activeWorkItems.length <= stage.wipLimit || stage.wipLimit === 0) {
+      const queuedWorkItems = state.workItems.filter(
+        (workItem) => workItem.teamId === team.id && workItem.stageIndex === team.stages.indexOf(stage) && !workItem.completed && !workItem.transferred && workItem.queued
       );
-      const availableSlots = stage.wipLimit === 0 ? queuedFeatures.length : Math.max(0, stage.wipLimit - activeFeatures.length);
-      activeFeatures.push(...queuedFeatures.slice(0, availableSlots));
+      const availableSlots = stage.wipLimit === 0 ? queuedWorkItems.length : Math.max(0, stage.wipLimit - activeWorkItems.length);
+      activeWorkItems.push(...queuedWorkItems.slice(0, availableSlots));
     }
 
-    // Advance each active feature for the current stage, considering the time elapsed and any rework that may be required.
-    for (const feature of activeFeatures) {
-      const activeFrom = Math.max(previousTime, feature.readyAt);
+    // Advance each active workItem for the current stage, considering the time elapsed and any rework that may be required.
+    for (const workItem of activeWorkItems) {
+      const activeFrom = Math.max(previousTime, workItem.readyAt);
       const activeDays = Math.max(0, state.simulationTime - activeFrom);
-      feature.queued = false; // Mark the feature as no longer queued since it's now active.
-      advanceFeature(feature, activeDays, state.simulationTime);
+      workItem.queued = false; // Mark the workItem as no longer queued since it's now active.
+      advanceWorkItem(workItem, activeDays, state.simulationTime);
     }
   }
 }
 
-// Calulate the Feature work time for a specific team and stage index, taking into account the variation set in the simulation
+// Calulate the WorkItem work time for a specific team and stage index, taking into account the variation set in the simulation
 function calcStageWorkTime(team, stageIndex) {
   let workTime = team.stages[stageIndex].duration * (1 + (Math.random() * 2 - 1) * state.parameters.variability);
   //console.log("calcStageWorkTime ", "team name: ", team.name, ",stage ",team.stages[stageIndex].name, ",stage duration: ", team.stages[stageIndex].duration, ",variation: ",state.parameters.variability, "workTime: ",workTime);
@@ -665,53 +665,53 @@ function createWorkItem(record, teamId, readyAt) {
   };
 }
 
-function advanceFeature(feature, days, endTime) {
+function advanceWorkItem(workItem, days, endTime) {
   let remainingDays = days;
   let eventTime = endTime - days;
-  while (remainingDays > 0.000001 && !feature.completed && !feature.transferred) {
-    //console.log("advanceFeature ", "feature id: ", feature.id, ",remainingDays: ", remainingDays, ",feature.workTimeRemaining: ", feature.workTimeRemaining, ",feature.reworkRemaining: ", feature.reworkRemaining, ",feature.stageIndex: ", feature.stageIndex);
-    const team = state.teams.find((candidate) => candidate.id === feature.teamId);
-    if (feature.reworkRemaining > 0) {
-      const worked = Math.min(remainingDays, feature.reworkRemaining);
-      feature.record.processingTime += worked;
-      feature.reworkRemaining -= worked;
+  while (remainingDays > 0.000001 && !workItem.completed && !workItem.transferred) {
+    //console.log("advanceWorkItem ", "workItem id: ", workItem.id, ",remainingDays: ", remainingDays, ",workItem.workTimeRemaining: ", workItem.workTimeRemaining, ",workItem.reworkRemaining: ", workItem.reworkRemaining, ",workItem.stageIndex: ", workItem.stageIndex);
+    const team = state.teams.find((candidate) => candidate.id === workItem.teamId);
+    if (workItem.reworkRemaining > 0) {
+      const worked = Math.min(remainingDays, workItem.reworkRemaining);
+      workItem.record.processingTime += worked;
+      workItem.reworkRemaining -= worked;
       remainingDays -= worked;
       eventTime += worked;
-      if (feature.reworkRemaining <= 0.000001) {
-        feature.reworkRemaining = 0;
-        finishTeam(feature, team, eventTime);
+      if (workItem.reworkRemaining <= 0.000001) {
+        workItem.reworkRemaining = 0;
+        finishTeam(workItem, team, eventTime);
       }
       continue;
     }
 
-    const worked = Math.min(remainingDays, feature.workTimeRemaining);
+    const worked = Math.min(remainingDays, workItem.workTimeRemaining);
 
-    feature.record.processingTime += worked;
-    feature.workTimeRemaining -= worked;
+    workItem.record.processingTime += worked;
+    workItem.workTimeRemaining -= worked;
     remainingDays -= worked;
     eventTime += worked;
 
-    if (feature.workTimeRemaining > 0) continue;
+    if (workItem.workTimeRemaining > 0) continue;
 
-    if (feature.stageIndex < team.stages.length - 1) {
-      feature.stageIndex += 1;
-      feature.workTimeRemaining = calcStageWorkTime(team, feature.stageIndex);
-      feature.readyAt = eventTime;
-      feature.queued = true;
+    if (workItem.stageIndex < team.stages.length - 1) {
+      workItem.stageIndex += 1;
+      workItem.workTimeRemaining = calcStageWorkTime(team, workItem.stageIndex);
+      workItem.readyAt = eventTime;
+      workItem.queued = true;
     } else if (team.reworkProbability > 0 && Math.random() < team.reworkProbability) {
-      feature.reworkRemaining = team.reworkDuration;
-      if (feature.reworkRemaining === 0) finishTeam(feature, team, eventTime);
+      workItem.reworkRemaining = team.reworkDuration;
+      if (workItem.reworkRemaining === 0) finishTeam(workItem, team, eventTime);
     } else {
-      finishTeam(feature, team, eventTime);
+      finishTeam(workItem, team, eventTime);
     }
   }
 }
 
-// Mark a feature as completed for a team, and handle downstream teams if applicable.
-function finishTeam(feature, team, completedAt) {
-  feature.transferred = true;
+// Mark a workItem as completed for a team, and handle downstream teams if applicable.
+function finishTeam(workItem, team, completedAt) {
+  workItem.transferred = true;
   if (team.downstreamTeamIds.length) {
-    feature.queued = true;
+    workItem.queued = true;
     for (const downstreamTeamId of team.downstreamTeamIds) {
       const upstreamTeams = state.teams.filter((candidate) =>
         candidate.downstreamTeamIds.includes(downstreamTeamId),
@@ -719,38 +719,38 @@ function finishTeam(feature, team, completedAt) {
 
       // If there is only one upstream team, we can immediately create a work item for the downstream team.
       if (upstreamTeams.length === 1) {
-        state.features.push(createWorkItem(feature.record, downstreamTeamId, completedAt));
+        state.workItems.push(createWorkItem(workItem.record, downstreamTeamId, completedAt));
         continue;
       }
 
-      // If there are multiple upstream teams, we need to buffer the feature until all upstream teams have completed it.
-      const bufferKey = `${feature.id}:${downstreamTeamId}`;
+      // If there are multiple upstream teams, we need to buffer the workItem until all upstream teams have completed it.
+      const bufferKey = `${workItem.id}:${downstreamTeamId}`;
       let buffer = state.joinBuffers.get(bufferKey);
       if (!buffer) {
-        buffer = { teamId: downstreamTeamId, record: feature.record, arrivals: new Map() };
+        buffer = { teamId: downstreamTeamId, record: workItem.record, arrivals: new Map() };
         state.joinBuffers.set(bufferKey, buffer);
       }
 
-      // If all upstream teams have completed the feature, we can create a work item for the downstream team.
+      // If all upstream teams have completed the workItem, we can create a work item for the downstream team.
       buffer.arrivals.set(team.id, completedAt);
       if (buffer.arrivals.size === upstreamTeams.length) {
         state.joinBuffers.delete(bufferKey);
         const readyAt = Math.max(...buffer.arrivals.values());
-        state.features.push(createWorkItem(feature.record, downstreamTeamId, readyAt));
+        state.workItems.push(createWorkItem(workItem.record, downstreamTeamId, readyAt));
       }
     }
     return;
   }
 
-  feature.completed = true;
-  feature.record.terminalOutputs.add(team.id);
+  workItem.completed = true;
+  workItem.record.terminalOutputs.add(team.id);
   if (
-    !feature.record.completed &&
-    state.terminalTeamIds.every((terminalTeamId) => feature.record.terminalOutputs.has(terminalTeamId))
+    !workItem.record.completed &&
+    state.terminalTeamIds.every((terminalTeamId) => workItem.record.terminalOutputs.has(terminalTeamId))
   ) {
-    feature.record.completed = true;
-    feature.record.leadTime = completedAt - feature.record.startTime;
-    state.leadTimes.push(feature.record.leadTime);
+    workItem.record.completed = true;
+    workItem.record.leadTime = completedAt - workItem.record.startTime;
+    state.leadTimes.push(workItem.record.leadTime);
   }
 }
 
@@ -764,7 +764,7 @@ function render() {
   elements.time.textContent = state.simulationTime.toFixed(1);
   elements.chartTime.textContent = state.simulationTime.toFixed(1);
   elements.completed.textContent = state.leadTimes.length;
-  elements.inProcess.textContent = state.featureRecords.filter((feature) => !feature.completed).length;
+  elements.inProcess.textContent = state.workItemRecords.filter((workItem) => !workItem.completed).length;
   const average = state.leadTimes.length
     ? state.leadTimes.reduce((sum, value) => sum + value, 0) / state.leadTimes.length
     : null;
@@ -808,11 +808,11 @@ function renderTimingChart() {
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = height - margin.top - margin.bottom;
   const pointGroups = new Map();
-  for (const feature of state.featureRecords) {
-    const leadTime = feature.completed
-      ? feature.leadTime
-      : Math.max(0, state.simulationTime - feature.startTime);
-    const processingRatio = leadTime > 0 ? feature.processingTime / leadTime : 0;
+  for (const workItem of state.workItemRecords) {
+    const leadTime = workItem.completed
+      ? workItem.leadTime
+      : Math.max(0, state.simulationTime - workItem.startTime);
+    const processingRatio = leadTime > 0 ? workItem.processingTime / leadTime : 0;
     const bucketLeadTime = Number(leadTime.toFixed(2));
     const bucketRatio = Number(processingRatio.toFixed(2));
     const key = `${bucketLeadTime}:${bucketRatio}`;
@@ -821,13 +821,13 @@ function renderTimingChart() {
       group = {
         leadTime: bucketLeadTime,
         processingRatio: bucketRatio,
-        featureIds: [],
+        workItemIds: [],
         completedCount: 0,
       };
       pointGroups.set(key, group);
     }
-    group.featureIds.push(feature.id);
-    if (feature.completed) group.completedCount += 1;
+    group.workItemIds.push(workItem.id);
+    if (workItem.completed) group.completedCount += 1;
   }
   const points = [...pointGroups.values()];
   const maxLeadTime = Math.max(1, ...points.map((point) => point.leadTime)) * 1.1;
@@ -835,7 +835,7 @@ function renderTimingChart() {
   svg.replaceChildren();
   svg.setAttribute(
     "aria-label",
-    `${state.featureRecords.length} features in ${points.length} plotted groups. Lead time in days is on the horizontal axis; processing time divided by lead time is on the vertical axis. Bubble size represents the number of features in each group.`,
+    `${state.workItemRecords.length} work items in ${points.length} plotted groups. Lead time in days is on the horizontal axis; processing time divided by lead time is on the vertical axis. Bubble size represents the number of workItems in each group.`,
   );
 
   const makeSvgElement = (name, attributes = {}) => {
@@ -923,15 +923,15 @@ function renderTimingChart() {
   svg.append(yLabel);
 
   for (const group of points) {
-    const featureCount = group.featureIds.length;
+    const workItemCount = group.workItemIds.length;
     const completedCount = group.completedCount;
-    const statusClass = completedCount === featureCount
+    const statusClass = completedCount === workItemCount
       ? "chart-point-complete"
       : completedCount === 0
         ? "chart-point-active"
         : "chart-point-mixed";
-    const radius = 5 + Math.sqrt(featureCount) * 4;
-    const pointLabel = `${featureCount} feature${featureCount === 1 ? "" : "s"}: ${group.leadTime.toFixed(2)} lead days, processing-to-lead ratio ${group.processingRatio.toFixed(2)}, ${completedCount} completed`;
+    const radius = 5 + Math.sqrt(workItemCount) * 4;
+    const pointLabel = `${workItemCount} workItem${workItemCount === 1 ? "" : "s"}: ${group.leadTime.toFixed(2)} lead days, processing-to-lead ratio ${group.processingRatio.toFixed(2)}, ${completedCount} completed`;
     const point = makeSvgElement("circle", {
       cx: margin.left + (group.leadTime / maxLeadTime) * plotWidth,
       cy: margin.top + plotHeight - (group.processingRatio / maxProcessingRatio) * plotHeight,
@@ -945,14 +945,14 @@ function renderTimingChart() {
     point.append(title);
     svg.append(point);
 
-    if (featureCount > 1) {
+    if (workItemCount > 1) {
       const countLabel = makeSvgElement("text", {
         x: margin.left + (group.leadTime / maxLeadTime) * plotWidth,
         y: margin.top + plotHeight - (group.processingRatio / maxProcessingRatio) * plotHeight + 4,
         class: "chart-point-count",
         "text-anchor": "middle",
       });
-      countLabel.textContent = String(featureCount);
+      countLabel.textContent = String(workItemCount);
       countLabel.setAttribute("pointer-events", "none");
       svg.append(countLabel);
     }
@@ -965,7 +965,7 @@ function renderTimingChart() {
       class: "chart-empty-state",
       "text-anchor": "middle",
     });
-    empty.textContent = "No features yet";
+    empty.textContent = "No workItems yet";
     svg.append(empty);
   }
 }
@@ -1060,19 +1060,19 @@ function drawTeamConnections(canvas, svg, teamNodes) {
   }
 }
 
-// Render a list of features for a given stage, showing active and queued features with their respective work times and rework times.
-// If there are more than 'limit features, it will display a message indicating how many more features are present.
-function renderFeatureList(list, features, classname = "feature", limit = 10) {
+// Render a list of workItems for a given stage, showing active and queued workItems with their respective work times and rework times.
+// If there are more than 'limit workItems, it will display a message indicating how many more workItems are present.
+function renderWorkItemList(list, workItems, classname = "workitem", limit = 10) {
     let actInd = 0;
-    for (const feature of features ?? []) {
+    for (const workItem of workItems ?? []) {
      const chip = document.createElement("span");
      chip.className = classname;
-     chip.textContent = `F${feature.id}${feature.reworkRemaining ? " Rework "+feature.reworkRemaining.toFixed(1) : (feature.workTimeRemaining && !feature.queued ? " "+feature.workTimeRemaining.toFixed(1) : "")}`;
+     chip.textContent = `W${workItem.id}${workItem.reworkRemaining ? " Rework "+workItem.reworkRemaining.toFixed(1) : (workItem.workTimeRemaining && !workItem.queued ? " "+workItem.workTimeRemaining.toFixed(1) : "")}`;
      list.append(chip);
      actInd++;
      if (actInd > limit) {
        const more = document.createElement("span");
-       more.textContent = `... ${features.length - limit} more`;
+       more.textContent = `... ${workItems.length - limit} more`;
        list.append(more);
        break;
      }
@@ -1111,10 +1111,10 @@ function renderTeamFlow(team) {
     joinCount.textContent = String(waiting.length);
     joinHeader.append(joinTitle, joinCount);
     const list = document.createElement("div");
-    list.className = "feature-list";
+    list.className = "workitem-list";
     for (const [bufferKey, buffer] of waiting) {
       const chip = document.createElement("span");
-      chip.className = "feature waiting-feature";
+      chip.className = "workitem waiting-workitem";
       chip.textContent = `F${buffer.record.id} ${buffer.arrivals.size}/${upstreamTeams.length}`;
       chip.title = `Waiting for ${upstreamTeams.length - buffer.arrivals.size} upstream team(s)`;
       chip.dataset.bufferKey = bufferKey;
@@ -1131,11 +1131,11 @@ function renderTeamFlow(team) {
     stageHeader.className = "flow-stage-header";
     const stageName = document.createElement("h4");
     stageName.textContent = stage.name;
-    const stageFeatures = state.features.filter(
-      (feature) => !feature.completed && !feature.transferred && feature.teamId === team.id && feature.stageIndex === index,
+    const stageWorkItems = state.workItems.filter(
+      (workItem) => !workItem.completed && !workItem.transferred && workItem.teamId === team.id && workItem.stageIndex === index,
     );
     const count = document.createElement("span");
-    count.textContent = String(stageFeatures.length);
+    count.textContent = String(stageWorkItems.length);
        stageHeader.append(stageName, count);
    if (stage.wipLimit > 0) {
       const stageWIPLimit = document.createElement("span");
@@ -1143,11 +1143,11 @@ function renderTeamFlow(team) {
       stageHeader.append(stageWIPLimit);
     }
     const list = document.createElement("div");
-    list.className = "feature-list";
+    list.className = "workitem-list";
 
-    const stageFeaturesGrouped = Object.groupBy(stageFeatures, (feature) => feature.queued == true ? "queued" : "active");
+    const stageWorkItemsGrouped = Object.groupBy(stageWorkItems, (workItem) => workItem.queued == true ? "queued" : "active");
 
-    renderFeatureList(list, stageFeaturesGrouped.active);
+    renderWorkItemList(list, stageWorkItemsGrouped.active);
 
     // Add a horizontal divider if the stage has a WIP limit
     if (stage.wipLimit > 0) {
@@ -1156,14 +1156,14 @@ function renderTeamFlow(team) {
       list.append(queuedHeader);
     }
 
-    renderFeatureList(list, stageFeaturesGrouped.queued, "queued-feature");
+    renderWorkItemList(list, stageWorkItemsGrouped.queued, "queued-workitem");
     
     stageElement.append(stageHeader, list);
     stages.append(stageElement);
   });
 
   if (!team.downstreamTeamIds.length) {
-    const completed = state.featureRecords.filter((feature) => feature.terminalOutputs.has(team.id));
+    const completed = state.workItemRecords.filter((workItem) => workItem.terminalOutputs.has(team.id));
     const doneStage = document.createElement("section");
     doneStage.className = "flow-stage done-stage";
     const doneHeader = document.createElement("div");
@@ -1174,9 +1174,9 @@ function renderTeamFlow(team) {
     doneCount.textContent = String(completed.length);
     doneHeader.append(doneTitle, doneCount);
     const list = document.createElement("div");
-    list.className = "feature-list";
+    list.className = "workitem-list";
 
-    renderFeatureList(list, completed.reverse(), "feature completed-feature");
+    renderWorkItemList(list, completed.reverse(), "workitem completed-workitem");
 
     doneStage.append(doneHeader, list);
     stages.append(doneStage);
