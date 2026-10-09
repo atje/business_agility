@@ -3,7 +3,7 @@ let nextTeamId = 1;
 const CONFIGURATION_STORAGE_KEY = "process-simulator-configurations";
 
 // Set version number
-document.querySelector("#version-number").textContent = "BETA-0.20 (Released 2026-10-09)";
+document.querySelector("#version-number").textContent = "BETA-0.21 (Released 2026-10-09)";
 
 function createStage(name, duration, wipLimit) {
   return { id: `stage-${nextStageId++}`, name, duration, wipLimit };
