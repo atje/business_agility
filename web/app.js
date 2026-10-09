@@ -60,7 +60,7 @@ const elements = {
   time: document.querySelector("#simulation-time"),
   chartTime: document.querySelector("#chart-simulation-time"),
   completed: document.querySelector("#completed-count"),
-  inProgress: document.querySelector("#in-progress-count"),
+  inProcess: document.querySelector("#in-process-count"),
   average: document.querySelector("#average-lead-time"),
   p95: document.querySelector("#p95-lead-time"),
   timingChart: document.querySelector("#feature-timing-chart"),
@@ -704,6 +704,7 @@ function advanceFeature(feature, days, endTime) {
   }
 }
 
+// Mark a feature as completed for a team, and handle downstream teams if applicable.
 function finishTeam(feature, team, completedAt) {
   feature.transferred = true;
   if (team.downstreamTeamIds.length) {
@@ -712,17 +713,22 @@ function finishTeam(feature, team, completedAt) {
       const upstreamTeams = state.teams.filter((candidate) =>
         candidate.downstreamTeamIds.includes(downstreamTeamId),
       );
+
+      // If there is only one upstream team, we can immediately create a work item for the downstream team.
       if (upstreamTeams.length === 1) {
         state.features.push(createWorkItem(feature.record, downstreamTeamId, completedAt));
         continue;
       }
 
+      // If there are multiple upstream teams, we need to buffer the feature until all upstream teams have completed it.
       const bufferKey = `${feature.id}:${downstreamTeamId}`;
       let buffer = state.joinBuffers.get(bufferKey);
       if (!buffer) {
         buffer = { teamId: downstreamTeamId, record: feature.record, arrivals: new Map() };
         state.joinBuffers.set(bufferKey, buffer);
       }
+
+      // If all upstream teams have completed the feature, we can create a work item for the downstream team.
       buffer.arrivals.set(team.id, completedAt);
       if (buffer.arrivals.size === upstreamTeams.length) {
         state.joinBuffers.delete(bufferKey);
@@ -732,6 +738,7 @@ function finishTeam(feature, team, completedAt) {
     }
     return;
   }
+
   feature.completed = true;
   feature.record.terminalOutputs.add(team.id);
   if (
@@ -754,7 +761,7 @@ function render() {
   elements.time.textContent = state.simulationTime.toFixed(1);
   elements.chartTime.textContent = state.simulationTime.toFixed(1);
   elements.completed.textContent = state.leadTimes.length;
-  elements.inProgress.textContent = state.featureRecords.filter((feature) => !feature.completed).length;
+  elements.inProcess.textContent = state.featureRecords.filter((feature) => !feature.completed).length;
   const average = state.leadTimes.length
     ? state.leadTimes.reduce((sum, value) => sum + value, 0) / state.leadTimes.length
     : null;
