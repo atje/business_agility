@@ -2,8 +2,9 @@ let nextStageId = 1;
 let nextTeamId = 1;
 const CONFIGURATION_STORAGE_KEY = "process-simulator-configurations";
 
-// Set version number
-document.querySelector("#version-number").textContent = "BETA-0.21 (Released 2026-10-09)";
+// Set version number, release date, and release information i nthe header
+document.querySelector("#version-number").textContent = "BETA-0.31 (Released 2026-10-12)";
+document.querySelector("#version-number").setAttribute("title", "Release notes:\n- 2026-10-12 (BETA-0.31): Added button to hide/show the process flow view.\n- 2026-10-05: Initial beta release.");
 
 function createStage(name, duration, wipLimit) {
   return { id: `stage-${nextStageId++}`, name, duration, wipLimit };
@@ -57,6 +58,7 @@ const elements = {
   teamEditor: document.querySelector("#team-editor"),
   addTeam: document.querySelector("#add-team-button"),
   toggleTeamEditor: document.querySelector("#toggle-team-editor-button"),
+  toggleSimulationPanel: document.querySelector("#toggle-simulation-panel-button"),
   status: document.querySelector("#status"),
   pause: document.querySelector("#pause-button"),
   reset: document.querySelector("#reset-button"),
@@ -1275,6 +1277,16 @@ elements.toggleTeamEditor.addEventListener("click", () => {
      elements.addTeam.style.display = "none";
    document.getElementById("toggle-team-editor-button").innerText = "Show Editor";
 
+  }
+});
+
+elements.toggleSimulationPanel.addEventListener("click", () => {
+  if (elements.flow.style.display == "none") {
+    elements.flow.style.display = "inline";
+    document.getElementById("toggle-simulation-panel-button").innerText = "Hide View";
+  } else {
+    elements.flow.style.display = "none";
+    document.getElementById("toggle-simulation-panel-button").innerText = "Show View";
   }
 });
 
