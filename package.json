@@ -1,0 +1,27 @@
+{
+  "name": "business_agility",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/atje/business_agility#readme",
+  "bugs": {
+    "url": "https://github.com/atje/business_agility/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atje/business_agility.git"
+  },
+  "license": "ISC",
+  "author": "Andreas Tjensten",
+  "type": "commonjs",
+  "main": "index.html",
+  "scripts": {
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "@vitest/coverage-v8": "^5.0.3"
+  }
+}
