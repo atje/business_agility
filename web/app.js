@@ -2,9 +2,9 @@ let nextStageId = 1;
 let nextTeamId = 1;
 const CONFIGURATION_STORAGE_KEY = "process-simulator-configurations";
 
-// Set version number, release date, and release information i nthe header
-document.querySelector("#version-number").textContent = "BETA-0.32 (Released 2026-10-13)";
-document.querySelector("#version-number").setAttribute("title", "Release notes:\n- 2026-10-13 (BETA-0.32): Fixed issue with work item processing time calculation in case of parallel processing by multiple teams.\n- 2026-10-12 (BETA-0.31): Added button to hide/show the process flow view.\n- 2026-10-05: Initial beta release.");
+// Set version number, release date, and release information in the header
+document.querySelector("#version-number").textContent = "BETA-0.33 (Released 2026-10-13)";
+document.querySelector("#version-number").setAttribute("title", "Release notes:\n- 2026-10-13 (BETA-0.33): Simulator name change and description update\n- 2026-10-13 (BETA-0.32): Fixed issue with work item processing time calculation in case of parallel processing by multiple teams.\n- 2026-10-12 (BETA-0.31): Added button to hide/show the process flow view.\n- 2026-10-05: Initial beta release.");
 
 function createStage(name, duration, wipLimit) {
   return { id: `stage-${nextStageId++}`, name, duration, wipLimit };

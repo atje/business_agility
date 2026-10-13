@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Process simulation</title>
+    <title>Organization flow simulation</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -11,9 +11,9 @@
       <header class="page-header">
         <div>
           <p class="eyebrow">Simulation Tool<span class="version">Version <span id="version-number"></span></span></p>
-          <h1>Process flow simulator</h1>
+          <h1>Organization flow simulator</h1>
           <p class="subtitle">
-            Change the process assumptions, then watch work move through each stage.<br> 
+            Change the organization structure, set simulation parameters, then watch work move through each stage.<br> 
           </p>
         </div>
         <div id="status" class="status status-idle" role="status">Ready</div>
@@ -22,24 +22,27 @@
 <button id="simulation-info-button" class="collapsible-button">About (click to expand)</button>
 <div id="simulation-info-content" class="info-content">
   <p>
-    The purpose of this simulation is to demonstrate how changes in process assumptions can impact overall performance of the system. 
-    No information is collected, everything is running solely in your local browser.
+    The purpose of this simulation is to demonstrate how organization structure and setup impacts overall performance of the system. 
+    <br><i>Note - No information in this simulation is collected, everything is running solely in your local browser.</i>
   </p>
   <p>
-    You start by configuring the organization through the <b>Teams and handoffs</b> section. You can add teams, set their work stages, and define how work is handed off between them. 
-    The Editor can be hidden to give more space to the simulation view.
+    You start by configuring the organization through the <b>Teams and handoffs</b> section. 
+    You can add teams, define their internal work stages, and define how work is handed off between the teams. 
+    The Editor can be hidden to give more space to the simulation view during simulation.
     </p>
     
   <p>You can configure the simulation parameters in the <b>Parameters</b> section. Hover over the parameter fields to see a description of what they mean. 
-    Once you have configured the teams and parameters, you can save and later reload configurations. 
+    Once you have configured the organization and set simulation parameters, you can save and later reload configurations. 
     It is possible to have multiple configurations saved in the browser, and you can switch between them at any time.
   </p>
   <p> 
-    In the <b>Process flow</b> section you can see how teams are interacting with each other and a live view of how work is moving through the system. If a work item is dependent on multiple teams, it will be blocked until all teams have completed their work.
+    In the <b>Process flow</b> section you can see how teams are interacting with each other. It shows a live view of how work is moving through the system. 
+    If a work item is dependent on multiple teams, it will be blocked by the downstream team until all upstream teams have completed their work.
     There you also see the current simulation time, which is measured in days.
   </p>
   <p>
-    The <b>Lead time and processing ratio</b> chart shows the lead time of each work item on the horizontal axis, and the processing ratio (processing time divided by lead time) on the vertical axis. The size of each bubble represents how many work items are represented by that point. The chart is updated in real-time as the simulation runs.
+    The <b>Lead time and processing ratio</b> chart shows the lead time of each work item on the horizontal axis, and the processing ratio (processing time divided by lead time) on the vertical axis. 
+    The size of each bubble represents how many work items are represented by that point. The chart is updated in real-time as the simulation runs.
   </p>
   <p>
       Click <b><i>Start simulation</i></b> to see how work flows through the system.</p>
