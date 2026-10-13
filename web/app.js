@@ -3,8 +3,8 @@ let nextTeamId = 1;
 const CONFIGURATION_STORAGE_KEY = "process-simulator-configurations";
 
 // Set version number, release date, and release information i nthe header
-document.querySelector("#version-number").textContent = "BETA-0.31 (Released 2026-10-12)";
-document.querySelector("#version-number").setAttribute("title", "Release notes:\n- 2026-10-12 (BETA-0.31): Added button to hide/show the process flow view.\n- 2026-10-05: Initial beta release.");
+document.querySelector("#version-number").textContent = "BETA-0.32 (Released 2026-10-13)";
+document.querySelector("#version-number").setAttribute("title", "Release notes:\n- 2026-10-13 (BETA-0.32): Fixed issue with work item processing time calculation in case of parallel processing by multiple teams.\n- 2026-10-12 (BETA-0.31): Added button to hide/show the process flow view.\n- 2026-10-05: Initial beta release.");
 
 function createStage(name, duration, wipLimit) {
   return { id: `stage-${nextStageId++}`, name, duration, wipLimit };
@@ -659,6 +659,7 @@ function createWorkItem(record, teamId, readyAt) {
     stageIndex: 0,
     stageElapsed: 0,
     readyAt,
+    processingTime: 0,
     workTimeRemaining: calcStageWorkTime(state.teams.find((team) => team.id === teamId), 0),
     reworkRemaining: 0,
     queued: true,
@@ -675,7 +676,7 @@ function advanceWorkItem(workItem, days, endTime) {
     const team = state.teams.find((candidate) => candidate.id === workItem.teamId);
     if (workItem.reworkRemaining > 0) {
       const worked = Math.min(remainingDays, workItem.reworkRemaining);
-      workItem.record.processingTime += worked;
+      workItem.processingTime += worked;
       workItem.reworkRemaining -= worked;
       remainingDays -= worked;
       eventTime += worked;
@@ -688,7 +689,7 @@ function advanceWorkItem(workItem, days, endTime) {
 
     const worked = Math.min(remainingDays, workItem.workTimeRemaining);
 
-    workItem.record.processingTime += worked;
+    workItem.processingTime += worked;
     workItem.workTimeRemaining -= worked;
     remainingDays -= worked;
     eventTime += worked;
@@ -721,6 +722,7 @@ function finishTeam(workItem, team, completedAt) {
 
       // If there is only one upstream team, we can immediately create a work item for the downstream team.
       if (upstreamTeams.length === 1) {
+        workItem.record.processingTime += workItem.processingTime;
         state.workItems.push(createWorkItem(workItem.record, downstreamTeamId, completedAt));
         continue;
       }
@@ -729,15 +731,20 @@ function finishTeam(workItem, team, completedAt) {
       const bufferKey = `${workItem.id}:${downstreamTeamId}`;
       let buffer = state.joinBuffers.get(bufferKey);
       if (!buffer) {
-        buffer = { teamId: downstreamTeamId, record: workItem.record, arrivals: new Map() };
+        buffer = { teamId: downstreamTeamId, record: workItem.record, arrivals: new Map(), processingTimes: new Map() };
         state.joinBuffers.set(bufferKey, buffer);
       }
 
       // If all upstream teams have completed the workItem, we can create a work item for the downstream team.
+      // Processing time is the maximum of the processing times of all upstream teams, and ready time is the 
+      // maximum of the arrival times of all upstream teams.
       buffer.arrivals.set(team.id, completedAt);
+      buffer.processingTimes.set(team.id, workItem.record.processingTime);
       if (buffer.arrivals.size === upstreamTeams.length) {
         state.joinBuffers.delete(bufferKey);
+        const processingTime = Math.max(...buffer.processingTimes.values());
         const readyAt = Math.max(...buffer.arrivals.values());
+        workItem.record.processingTime += processingTime;
         state.workItems.push(createWorkItem(workItem.record, downstreamTeamId, readyAt));
       }
     }

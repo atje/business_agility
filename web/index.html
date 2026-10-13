@@ -46,8 +46,6 @@
 
       <b>Known issues:</b> 
       <ul>
-        <li>Processing time is currently not correctly calculated for work items that are blocked by multiple teams. 
-          It will show the sum of the processing times for all teams involved, which leads to an overestimation of the actual processing time.</li>
         <li>The simulation output will make the screen "jump" up and down a bit during execution. This is due to how the team view is adjusted, based on work items processed in each team stage.</li>
       </ul>
       <br>
@@ -128,10 +126,10 @@
             <p class="eyebrow">Live view</p>
             <h2 id="flow-heading">Process flow</h2>
           </div>
+          <div class="clock">Day <strong id="simulation-time">0.0</strong></div>
           <div>
             <button id="toggle-simulation-panel-button" type="button">Hide View</button>
           </div>
-          <div class="clock">Day <strong id="simulation-time">0.0</strong></div>
         </div>
         <div id="process-flow" class="team-flow" aria-live="polite"></div>
       </section>
