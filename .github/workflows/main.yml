@@ -19,6 +19,8 @@ jobs:
           extra_plugins: |
             @semantic-release/changelog@6.0.0
             @semantic-release/git
+            @semantic-release/github
+            @semantic-release/release-notes-generator
           # you can set branches for semantic-release v20 or above.
           branches: |
             [
