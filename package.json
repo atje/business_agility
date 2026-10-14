@@ -1,14 +1,14 @@
 {
-  "name": "business_agility",
+  "name": "organization_flow_simulator",
   "version": "1.0.0",
   "description": "",
-  "homepage": "https://github.com/atje/business_agility#readme",
+  "homepage": "https://github.com/atje/organization_flow_simulator#readme",
   "bugs": {
-    "url": "https://github.com/atje/business_agility/issues"
+    "url": "https://github.com/atje/organization_flow_simulator/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/atje/business_agility.git"
+    "url": "git+https://github.com/atje/organization_flow_simulator.git"
   },
   "license": "ISC",
   "author": "Andreas Tjensten",

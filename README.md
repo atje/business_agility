@@ -1,1 +1,1 @@
-[![Release](https://github.com/atje/business_agility/actions/workflows/main.yml/badge.svg)](https://github.com/atje/business_agility/actions/workflows/main.yml)
+[![Release](https://github.com/atje/organization_flow_simulator/actions/workflows/main.yml/badge.svg)](https://github.com/atje/organization_flow_simulator/actions/workflows/main.yml)
