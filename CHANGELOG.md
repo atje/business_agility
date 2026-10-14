@@ -1,3 +1,10 @@
+## [1.0.2-beta.1](https://github.com/atje/organization_flow_simulator/compare/v1.0.1...v1.0.2-beta.1) (2026-10-14)
+
+
+### Bug Fixes
+
+* removed commented code ([ae25bf6](https://github.com/atje/organization_flow_simulator/commit/ae25bf67de5a02ccaf639e8631157074e0138c9c))
+
 ## [1.0.1](https://github.com/atje/organization_flow_simulator/compare/v1.0.0...v1.0.1) (2026-10-14)
 
 
