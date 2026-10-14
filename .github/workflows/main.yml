@@ -8,7 +8,20 @@ jobs:
     runs-on: ubuntu-latest
     steps: 
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
+        
+      # Set up Node.js with caching for faster installs
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      # Install dependencies including semantic-release plugins
+      - name: Install dependencies
+        run: npm ci
+
+      # Tun semantic-release to determine the next version and publish the release
       - name: Semantic Release
         uses: cycjimmy/semantic-release-action@v8
         with:
