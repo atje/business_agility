@@ -1,17 +1,12 @@
-import { versions, knownIssues } from "./versions.js";
+// import data from "./example.json" with { type: "json" };
+import pkg from ".././package.json" with { type: "json" };
 
 let nextStageId = 1;
 let nextTeamId = 1;
 const CONFIGURATION_STORAGE_KEY = "process-simulator-configurations";
 
-// Set version number, release date, and release information in the header
-document.querySelector("#version-number").textContent = versions[0].version + " (" + versions[0].date + ")";
-document.querySelector("#version-number").setAttribute("title", versions.map((v) => `- ${v.date} (${v.version}): ${v.notes}`).join("\n"));
-for (const issue of knownIssues) {
-    const i = document.createElement("li");
-    i.textContent = `${issue.issue}`;
-    document.querySelector("#known-issues").appendChild(i);
-}
+// Set app version number in the header
+document.getElementById("version-number").textContent = pkg.version;
 
 function createStage(name, duration, wipLimit) {
   return { id: `stage-${nextStageId++}`, name, duration, wipLimit };
