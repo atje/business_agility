@@ -1,0 +1,34 @@
+name: Release
+on:
+  push:
+    branches:
+      -main
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v8
+        with:
+          dry_run: true
+          semantic_version: 20
+            # You can specify specifying version range for the extra plugins if you prefer.
+          extra_plugins: |
+            @semantic-release/changelog@6.0.0
+            @semantic-release/git
+          # you can set branches for semantic-release v20 or above.
+          branches: |
+            [
+              '+([0-9])?(.{+([0-9]),x}).x',
+              'master',
+              'next',
+              'next-major',
+              {name: 'beta', prerelease: true},
+              {name: 'alpha', prerelease: true}
+            ]
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
