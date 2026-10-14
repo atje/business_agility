@@ -14,7 +14,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: 'npm'
 
       # Install dependencies including semantic-release plugins
@@ -26,7 +26,7 @@ jobs:
         uses: cycjimmy/semantic-release-action@v8
         with:
           dry_run: true
-          semantic_version: 20
+          semantic_version: 24
             # You can specify specifying version range for the extra plugins if you prefer.
           extra_plugins: |
             @semantic-release/changelog@6.0.0
