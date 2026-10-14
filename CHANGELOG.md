@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/atje/organization_flow_simulator/compare/v1.0.0...v1.0.1) (2026-10-14)
+
+
+### Bug Fixes
+
+* Changed github repo name ([541f365](https://github.com/atje/organization_flow_simulator/commit/541f365681d14164e9ca3d7d0f33bdaccc1c0316))
+
 # 1.0.0 (2026-10-14)
 
 
