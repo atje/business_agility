@@ -101,12 +101,21 @@ function makeInput(value, type = "text") {
   return input;
 }
 
+// Bind metadata to an input element using data attributes for easier event handling and state management
+function bindInputMetadata(input, metadata) {
+  for (const [key, value] of Object.entries(metadata)) {
+    input.dataset[key] = value;
+  }
+}
+
 function renderTeamEditor() {
   const fragment = document.createDocumentFragment();
   const tabList = document.createElement("div");
   tabList.className = "team-tabs";
   tabList.setAttribute("role", "tablist");
   tabList.setAttribute("aria-label", "Team settings");
+
+
   for (const team of teamConfigs) {
     const tab = document.createElement("button");
     tab.type = "button";
@@ -152,10 +161,10 @@ function renderTeamEditor() {
 
     const fields = document.createElement("div");
     fields.className = "team-config-fields";
+
     const nameInput = makeInput(team.name);
     nameInput.required = true;
-    nameInput.dataset.teamId = team.id;
-    nameInput.dataset.teamField = "name";
+    bindInputMetadata(nameInput, { teamId: team.id, teamField: "name" });
     nameInput.setAttribute("title", "Give the team a name to identify it in the process flow");
     fields.append(makeField("Team name", nameInput));
 
@@ -163,16 +172,14 @@ function renderTeamEditor() {
     probabilityInput.min = "0";
     probabilityInput.max = "1";
     probabilityInput.step = "0.01";
-    probabilityInput.dataset.teamId = team.id;
-    probabilityInput.dataset.teamField = "reworkProbability";
+    bindInputMetadata(probabilityInput, { teamId: team.id, teamField: "reworkProbability" });
     probabilityInput.setAttribute("title", "Probability of rework for workItems completed by the team, between 0 and 1 where 1 corresponds to 100% of workItems requiring rework");
     fields.append(makeField("Rework probability", probabilityInput));
 
     const durationInput = makeInput(team.reworkDuration, "number");
     durationInput.min = "0";
     durationInput.step = "0.1";
-    durationInput.dataset.teamId = team.id;
-    durationInput.dataset.teamField = "reworkDuration";
+    bindInputMetadata(durationInput, { teamId: team.id, teamField: "reworkDuration" });
     durationInput.setAttribute("title", "Duration in case of rework for workItems completed by the team, in days");
     fields.append(makeField("Rework duration (days)", durationInput));
 
@@ -190,8 +197,7 @@ function renderTeamEditor() {
       const checkbox = document.createElement("input");
       checkbox.type = "checkbox";
       checkbox.checked = team.downstreamTeamIds.includes(optionTeam.id);
-      checkbox.dataset.teamId = team.id;
-      checkbox.dataset.connectionTargetId = optionTeam.id;
+      bindInputMetadata(checkbox, { teamId: team.id, connectionTargetId: optionTeam.id });
       const choiceName = document.createElement("span");
       choiceName.textContent = optionTeam.name || "New team";
       choice.append(checkbox, choiceName);
@@ -216,40 +222,32 @@ function renderTeamEditor() {
 
     const stages = document.createElement("div");
     stages.className = "stage-editor-list";
+
+    // Loop through each stage of the team to create input fields for editing stage properties
     for (const stage of team.stages) {
+
       const row = document.createElement("div");
       row.className = "stage-editor-row";
-      const stageName = makeInput(stage.name);
-      stageName.required = true;
-      stageName.dataset.teamId = team.id;
-      stageName.dataset.stageId = stage.id;
-      stageName.dataset.stageField = "name";
-      const stageDuration = makeInput(stage.duration, "number");
-      stageDuration.min = "0.1";
-      stageDuration.step = "0.1";
-      stageDuration.dataset.teamId = team.id;
-      stageDuration.dataset.stageId = stage.id;
-      stageDuration.dataset.stageField = "duration";
-      stageDuration.setAttribute("title", "Stage duration in days");
-      const stageWIPLimit = makeInput(stage.wipLimit, "number");
-      stageWIPLimit.min = "0";
-      stageWIPLimit.step = "1";
-      stageWIPLimit.dataset.teamId = team.id;
-      stageWIPLimit.dataset.stageId = stage.id;
-      stageWIPLimit.dataset.stageField = "wipLimit";
-      stageWIPLimit.setAttribute("title", "Work In Process limit for the stage, 0 = no limit");
-      const removeStage = document.createElement("button");
-      removeStage.type = "button";
-      removeStage.className = "icon-button";
-      removeStage.dataset.action = "remove-stage";
-      removeStage.dataset.teamId = team.id;
-      removeStage.dataset.stageId = stage.id;
-      removeStage.textContent = "🗑️";
-      removeStage.setAttribute("aria-label", `Remove ${stage.name || "stage"} stage`);
-      removeStage.disabled = team.stages.length === 1;
-      row.append(makeField("Stage name", stageName), makeField("Duration (days)", stageDuration), makeField("WIP Limit (0 = no limit)", stageWIPLimit), removeStage);
+      
+      // Team stage field configuration for rendering input fields in the team editor
+      const stageFieldConfig = [
+        { label: "Stage name", field: "name", type: "text", required: true },
+        { label: "Duration (days)", field: "duration", type: "number", min: 0.1, step: 0.1, title: "Stage duration in days" },
+        { label: "WIP Limit (0 = no limit)", field: "wipLimit", type: "number", min: 0, step: 1, title: "Work In Process limit for the stage, 0 = no limit" },
+      ];
+
+      // Loop through the stage field configuration to create input fields for each stage property
+      for (const { label, field, type, ...attributes } of stageFieldConfig) {
+        const input = makeInput(stage[field], type);
+        for (const [attr, value] of Object.entries(attributes)) {
+           input[attr] = value;
+        }
+        bindInputMetadata(input, { teamId: team.id, stageId: stage.id, stageField: field });
+        row.append(makeField(label, input));
+      }
       stages.append(row);
     }
+    
     card.append(stages);
     tabPanel.append(card);
     fragment.append(tabPanel);
