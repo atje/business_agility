@@ -6,7 +6,8 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    steps: 
+    steps:
+      # Checkout the repository to the GitHub Actions runner
       - name: Checkout
         uses: actions/checkout@v4
         
