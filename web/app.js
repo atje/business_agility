@@ -1,4 +1,5 @@
 import pkg from ".././package.json" with { type: "json" };
+import { renderTimingChart } from "./charts.js";
 
 let nextStageId = 1;
 let nextTeamId = 1;
@@ -779,7 +780,7 @@ function render() {
   elements.average.textContent = average === null ? "—" : `${average.toFixed(1)} d`;
   const p95 = percentile(state.leadTimes, 0.95);
   elements.p95.textContent = p95 === null ? "—" : `${p95.toFixed(1)} d`;
-  renderTimingChart();
+  renderTimingChart(elements.timingChart, state.workItemRecords, state.simulationTime);
 
   const layout = calculateTeamLayout(state.teams);
   const canvas = document.createElement("div");
@@ -806,176 +807,6 @@ function render() {
   canvas.append(links, nodes);
   elements.flow.replaceChildren(canvas);
   drawTeamConnections(canvas, links, teamNodes);
-}
-
-function renderTimingChart() {
-  const svg = elements.timingChart;
-  const width = 760;
-  const height = 420;
-  const margin = { top: 22, right: 26, bottom: 64, left: 72 };
-  const plotWidth = width - margin.left - margin.right;
-  const plotHeight = height - margin.top - margin.bottom;
-  const pointGroups = new Map();
-  for (const workItem of state.workItemRecords) {
-    const leadTime = workItem.completed
-      ? workItem.leadTime
-      : Math.max(0, state.simulationTime - workItem.startTime);
-    const processingRatio = leadTime > 0 ? workItem.processingTime / leadTime : 0;
-    const bucketLeadTime = Number(leadTime.toFixed(2));
-    const bucketRatio = Number(processingRatio.toFixed(2));
-    const key = `${bucketLeadTime}:${bucketRatio}`;
-    let group = pointGroups.get(key);
-    if (!group) {
-      group = {
-        leadTime: bucketLeadTime,
-        processingRatio: bucketRatio,
-        workItemIds: [],
-        completedCount: 0,
-      };
-      pointGroups.set(key, group);
-    }
-    group.workItemIds.push(workItem.id);
-    if (workItem.completed) group.completedCount += 1;
-  }
-  const points = [...pointGroups.values()];
-  const maxLeadTime = Math.max(1, ...points.map((point) => point.leadTime)) * 1.1;
-  const maxProcessingRatio = Math.max(1, ...points.map((point) => point.processingRatio)) * 1.1;
-  svg.replaceChildren();
-  svg.setAttribute(
-    "aria-label",
-    `${state.workItemRecords.length} work items in ${points.length} plotted groups. Lead time in days is on the horizontal axis; processing time divided by lead time is on the vertical axis. Bubble size represents the number of workItems in each group.`,
-  );
-
-  const makeSvgElement = (name, attributes = {}) => {
-    const element = document.createElementNS("http://www.w3.org/2000/svg", name);
-    for (const [attribute, value] of Object.entries(attributes)) {
-      element.setAttribute(attribute, String(value));
-    }
-    return element;
-  };
-
-  for (let tick = 0; tick <= 4; tick += 1) {
-    const fraction = tick / 4;
-    const x = margin.left + plotWidth * fraction;
-    const y = margin.top + plotHeight * (1 - fraction);
-    svg.append(
-      makeSvgElement("line", {
-        x1: margin.left,
-        x2: width - margin.right,
-        y1: y,
-        y2: y,
-        class: "chart-gridline",
-      }),
-      makeSvgElement("line", {
-        x1: x,
-        x2: x,
-        y1: margin.top,
-        y2: height - margin.bottom,
-        class: "chart-gridline",
-      }),
-    );
-
-    const xTick = makeSvgElement("text", {
-      x,
-      y: height - margin.bottom + 22,
-      class: "chart-tick",
-      "text-anchor": "middle",
-    });
-    xTick.textContent = (maxLeadTime * fraction).toFixed(1);
-    svg.append(xTick);
-
-    const yTick = makeSvgElement("text", {
-      x: margin.left - 12,
-      y: y + 4,
-      class: "chart-tick",
-      "text-anchor": "end",
-    });
-    yTick.textContent = (maxProcessingRatio * fraction).toFixed(2);
-    svg.append(yTick);
-  }
-
-  svg.append(
-    makeSvgElement("line", {
-      x1: margin.left,
-      x2: width - margin.right,
-      y1: height - margin.bottom,
-      y2: height - margin.bottom,
-      class: "chart-axis",
-    }),
-    makeSvgElement("line", {
-      x1: margin.left,
-      x2: margin.left,
-      y1: margin.top,
-      y2: height - margin.bottom,
-      class: "chart-axis",
-    }),
-  );
-
-  const xLabel = makeSvgElement("text", {
-    x: margin.left + plotWidth / 2,
-    y: height - 12,
-    class: "chart-axis-label",
-    "text-anchor": "middle",
-  });
-  xLabel.textContent = "Lead time (days)";
-  svg.append(xLabel);
-
-  const yLabel = makeSvgElement("text", {
-    x: 18,
-    y: margin.top + plotHeight / 2,
-    class: "chart-axis-label",
-    "text-anchor": "middle",
-    transform: `rotate(-90 18 ${margin.top + plotHeight / 2})`,
-  });
-  yLabel.textContent = "Processing time / lead time";
-  svg.append(yLabel);
-
-  for (const group of points) {
-    const workItemCount = group.workItemIds.length;
-    const completedCount = group.completedCount;
-    const statusClass = completedCount === workItemCount
-      ? "chart-point-complete"
-      : completedCount === 0
-        ? "chart-point-active"
-        : "chart-point-mixed";
-    const radius = 5 + Math.sqrt(workItemCount) * 4;
-    const pointLabel = `${workItemCount} workItem${workItemCount === 1 ? "" : "s"}: ${group.leadTime.toFixed(2)} lead days, processing-to-lead ratio ${group.processingRatio.toFixed(2)}, ${completedCount} completed`;
-    const point = makeSvgElement("circle", {
-      cx: margin.left + (group.leadTime / maxLeadTime) * plotWidth,
-      cy: margin.top + plotHeight - (group.processingRatio / maxProcessingRatio) * plotHeight,
-      r: radius,
-      class: `chart-point ${statusClass}`,
-      tabindex: 0,
-      "aria-label": pointLabel,
-    });
-    const title = makeSvgElement("title");
-    title.textContent = pointLabel;
-    point.append(title);
-    svg.append(point);
-
-    if (workItemCount > 1) {
-      const countLabel = makeSvgElement("text", {
-        x: margin.left + (group.leadTime / maxLeadTime) * plotWidth,
-        y: margin.top + plotHeight - (group.processingRatio / maxProcessingRatio) * plotHeight + 4,
-        class: "chart-point-count",
-        "text-anchor": "middle",
-      });
-      countLabel.textContent = String(workItemCount);
-      countLabel.setAttribute("pointer-events", "none");
-      svg.append(countLabel);
-    }
-  }
-
-  if (!points.length) {
-    const empty = makeSvgElement("text", {
-      x: margin.left + plotWidth / 2,
-      y: margin.top + plotHeight / 2,
-      class: "chart-empty-state",
-      "text-anchor": "middle",
-    });
-    empty.textContent = "No workItems yet";
-    svg.append(empty);
-  }
 }
 
 function calculateTeamLayout(teams) {
