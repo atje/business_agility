@@ -1,3 +1,11 @@
+## [1.0.2-beta.2](https://github.com/atje/organization_flow_simulator/compare/v1.0.2-beta.1...v1.0.2-beta.2) (2026-10-15)
+
+
+### Bug Fixes
+
+* correction of .releaserc file naming ([f52c5e7](https://github.com/atje/organization_flow_simulator/commit/f52c5e78b5500b719a103584c5d2426bc3ff938a))
+* testing version update ([093345a](https://github.com/atje/organization_flow_simulator/commit/093345abce785040a3322cf1789e74e4a87b3995))
+
 ## [1.0.2-beta.1](https://github.com/atje/organization_flow_simulator/compare/v1.0.1...v1.0.2-beta.1) (2026-10-14)
 
 
