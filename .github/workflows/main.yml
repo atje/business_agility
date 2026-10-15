@@ -44,8 +44,8 @@ jobs:
                 "replacements": [
                 {
                   "files": ["./web/app.js"],
-                  "from": "const appVersion = \".*\";",
-                  "to": "const appVersion = \"${nextRelease.version}\";",
+                  "from": "const appVersion = \".*\"\;",
+                  "to": "const appVersion = \"${nextRelease.version}\"\;",
                   "results": [
                   {
                     "file": "./web/app.js",
