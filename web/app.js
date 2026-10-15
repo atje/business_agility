@@ -6,7 +6,7 @@ let nextTeamId = 1;
 const CONFIGURATION_STORAGE_KEY = "process-simulator-configurations";
 
 // Set app version number in the header
-// Note - App version is updated automatically by semantic-release in Github
+// Note - App version is updated automatically by semantic-release in Github action
 const appVersion = "x.x.x";
 document.getElementById("version-number").textContent = appVersion;
 
