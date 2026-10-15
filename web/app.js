@@ -1,12 +1,14 @@
-import pkg from ".././package.json" with { type: "json" };
 import { renderTimingChart } from "./charts.js";
 
 let nextStageId = 1;
 let nextTeamId = 1;
+
 const CONFIGURATION_STORAGE_KEY = "process-simulator-configurations";
 
 // Set app version number in the header
-document.getElementById("version-number").textContent = pkg.version;
+// Note - App version is updated automatically by semantic-release in Github
+const appVersion = "x.x.x";
+document.getElementById("version-number").textContent = appVersion;
 
 function createStage(name, duration, wipLimit) {
   return { id: `stage-${nextStageId++}`, name, duration, wipLimit };
