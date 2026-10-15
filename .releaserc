@@ -4,6 +4,10 @@
     {
       "name": "next",
       "prerelease": true
+    },
+    {
+      "name": "beta",
+      "prerelease": true
     }
   ],
   "plugins": [
@@ -21,12 +25,34 @@
       }
     ],
     [
+      "semantic-release-replace-plugin",
+      {
+        "replacements": [
+          {
+            "files": ["web/app.js"],
+            "from": "appVersion = \".*\"",
+            "to": "appVersion = \"${nextRelease.version}\"",
+            "results": [
+              {
+                "file": "web/app.js",
+                "hasChanged": true,
+                "numMatches": 1,
+                "numReplacements": 1
+              }
+            ],
+            "countMatches": true
+          }
+        ]
+      }
+    ],
+    [
       "@semantic-release/git",
       {
         "assets": [
           "package.json",
           "package-lock.json",
-          "CHANGELOG.md"
+          "CHANGELOG.md",
+          "web/app.js"
         ],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }

@@ -1,6 +1,6 @@
 {
   "name": "organization_flow_simulator",
-  "version": "1.0.1",
+  "version": "1.0.2-beta.2",
   "description": "",
   "homepage": "https://github.com/atje/organization_flow_simulator#readme",
   "bugs": {
@@ -20,13 +20,16 @@
     "release:semantic-release": "npx semantic-release"
   },
   "dependencies": {
-    "@vitest/coverage-v8": "^5.0.3"
+    "@vitest/coverage-v8": "^5.0.4",
+    "npm": "^12.2.0",
+    "yarn": "^1.22.22"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^7.0.0",
     "@semantic-release/git": "^11.0.1",
     "@semantic-release/github": "^12.0.10",
     "@semantic-release/release-notes-generator": "^14.1.1",
-    "semantic-release-ado": "^1.4.0"
+    "semantic-release-ado": "^1.4.0",
+    "semantic-release-replace-plugin": "^1.2.7"
   }
 }

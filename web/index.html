@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Organization flow simulation</title>
     <link rel="stylesheet" href="./styles.css" />
+    <script src="http://www.w3schools.com/lib/w3data.js"></script>
   </head>
   <body>
     <main class="app-shell">
@@ -20,37 +21,11 @@
       </header>
 
 <button id="simulation-info-button" class="collapsible-button">About (click to expand)</button>
-<div id="simulation-info-content" class="info-content">
-  <p>
-    The purpose of this simulation is to demonstrate how organization structure and setup impacts overall performance of the system. 
-    <br><i>Note - No information in this simulation is collected, everything is running solely in your local browser.</i>
-  </p>
-  <p>
-    You start by configuring the organization through the <b>Teams and handoffs</b> section. 
-    You can add teams, define their internal work stages, and define how work is handed off between the teams. 
-    The Editor can be hidden to give more space to the simulation view during simulation.
-    </p>
-    
-  <p>You can configure the simulation parameters in the <b>Parameters</b> section. Hover over the parameter fields to see a description of what they mean. 
-    Once you have configured the organization and set simulation parameters, you can save and later reload configurations. 
-    It is possible to have multiple configurations saved in the browser, and you can switch between them at any time.
-  </p>
-  <p> 
-    In the <b>Process flow</b> section you can see how teams are interacting with each other. It shows a live view of how work is moving through the system. 
-    If a work item is dependent on multiple teams, it will be blocked by the downstream team until all upstream teams have completed their work.
-    There you also see the current simulation time, which is measured in days.
-  </p>
-  <p>
-    The <b>Lead time and processing ratio</b> chart shows the lead time of each work item on the horizontal axis, and the processing ratio (processing time divided by lead time) on the vertical axis. 
-    The size of each bubble represents how many work items are represented by that point. The chart is updated in real-time as the simulation runs.
-  </p>
-  <p>
-      Click <b><i>Start simulation</i></b> to see how work flows through the system.</p>
+<div id="simulation-info-content" class="info-content" w3-include-html="about.html">
+<script>
+  w3IncludeHTML();
+</script>
 
-      <b>Known issues:</b> 
-      <ul id="known-issues"></ul>
-      <br>
-  <p>Enjoy!</p>
 </div>
       <section class="controls-panel" aria-labelledby="controls-heading">
         <h2 id="controls-heading">Parameters</h2>
