@@ -29,7 +29,7 @@
       {
         "replacements": [
           {
-            "files": ["web.app.js"],
+            "files": ["web/app.js"],
             "from": "appVersion = \".*\"",
             "to": "appVersion = \"${nextRelease.version}\"",
             "results": [
