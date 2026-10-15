@@ -42,20 +42,20 @@ jobs:
               "semantic-release-replace-plugin",
               {
                 "replacements": [
-                {
-                  "files": ["./web/app.js"],
-                  "from": "const appVersion = \".*\"\;",
-                  "to": "const appVersion = \"${nextRelease.version}\"\;",
-                  "results": [
                   {
-                    "file": "./web/app.js",
-                    "hasChanged": true,
-                    "numMatches": 1,
-                    "numReplacements": 1
+                    "files": ["./web/app.js"],
+                    "from": "const appVersion = \".*\"\;",
+                    "to": "const appVersion = \"${nextRelease.version}\"\;",
+                    "results": [
+                      {
+                        "file": "./web/app.js",
+                        "hasChanged": true,
+                        "numMatches": 1,
+                        "numReplacements": 1
+                      }
+                    ],
+                    "countMatches": true
                   }
-                  ],
-                  "countMatches": true
-                }
                 ]
               }
             ],          # you can set branches for semantic-release v20 or above.
