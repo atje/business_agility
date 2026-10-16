@@ -1,1 +1,1 @@
-[![Release](https://github.com/atje/organization_flow_simulator/actions/workflows/main.yml/badge.svg)](https://github.com/atje/organization_flow_simulator/actions/workflows/main.yml)
+[![Release and update app version](https://github.com/atje/organization_flow_simulator/actions/workflows/release.yml/badge.svg)](https://github.com/atje/organization_flow_simulator/actions/workflows/release.yml)
